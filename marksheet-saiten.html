@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.4
+ マークシート採点アプリ  ver 1.5
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -18,7 +18,7 @@
    2. OMR      … 画像からマークを読む処理
    3. 状態管理 … 設定・結果の保持、自動保存、バックアップ
    4. 画面     … 各ステップの表示と操作
-   5. 出力     … CSV・印刷
+   5. 出力     … CSV・個人票（生徒配布用）・成績一覧と分析の印刷、バックアップ
 
  【よくある修正】
    ・読み取りが甘い／厳しい → 画面の「読み取りの感度」で調整
@@ -147,7 +147,7 @@ tr.rate td{background:#F7F8FA;font-size:12px;color:var(--ink-soft);cursor:defaul
 .wcard-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .wcard input{width:68px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;text-align:right;font-size:16px}
 .wcard canvas{display:block;width:100%;height:auto;margin-top:8px;border:1px solid var(--line);border-radius:4px}
-textarea.note-input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-weight:400;color:var(--ink);resize:vertical;width:100%}
+textarea.note-input,textarea.model-input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-weight:400;color:var(--ink);resize:vertical;width:100%}
 .help-body{max-width:760px}
 .help-body h3{font-size:17px;margin:22px 0 6px}
 .help-body p,.help-body li{font-size:14.5px}
@@ -156,15 +156,52 @@ textarea.note-input{padding:8px 10px;border:1px solid var(--line);border-radius:
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.show{opacity:1}
 
-/* 印刷時は解答用紙だけを出す */
+details.panel summary{cursor:pointer}
+.krow .kl{width:24px;text-align:center;font-weight:700;color:var(--rose)}
+.krow input.kt{flex:1;min-width:0;padding:4px 8px;border:1px solid var(--line);border-radius:6px}
+
+/* 印刷時は #printArea の中身（解答用紙・個人票・成績一覧のどれか）だけを出す */
 #printArea{display:none}
 @media print{
   @page{size:A4 portrait;margin:0}
+  @page report{size:A4 portrait;margin:12mm 12mm 10mm}
   body{background:#fff}
   header.app,main,.toast{display:none!important}
   #printArea{display:block}
-  #printArea svg{width:210mm;height:297mm;display:block}
+  #printArea > svg{width:210mm;height:297mm;display:block}
 }
+/* 個人票・成績一覧（印刷用。画面には出ない） */
+.rp{page:report;color:#111;font-size:10.5pt;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rp + .rp{break-before:page}
+.rp h1{font-size:15pt;margin:0}
+.rp h2{font-size:11.5pt;margin:5mm 0 2mm;padding-left:2mm;border-left:1.2mm solid #C8374F}
+.rp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:6mm;border-bottom:.4mm solid #111;padding-bottom:2mm}
+.rp-id{font-size:12pt;white-space:nowrap}
+.rp-id u{display:inline-block;min-width:45mm;text-decoration:none;border-bottom:.3mm solid #111}
+.rp-score{display:flex;gap:8mm;align-items:baseline;margin:3mm 0 1mm;flex-wrap:wrap}
+.rp-score .big{font-size:13pt}
+.rp-score .big b{font-size:24pt;margin:0 1mm}
+.rp-score span{color:#444}
+.rp-cols{display:grid;gap:5mm}
+.rp table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.rp th,.rp td{border:.2mm solid #999;padding:.6mm 1.5mm;text-align:center;vertical-align:middle}
+.rp thead th{background:#EEF0F4;font-weight:700}
+.rp td.l,.rp th.l{text-align:left}
+.rp .ok{color:#23835A;font-weight:700}
+.rp .ng{color:#C8374F;font-weight:700}
+.rp tr.hl td{background:#FBE9EC}
+.rp td.cor{background:#E3F3EA;font-weight:700}
+.rp .wbox{border:.3mm solid #999;border-radius:1.5mm;padding:2mm 3mm;margin-bottom:3mm;break-inside:avoid}
+.rp .wbox-h{display:flex;justify-content:space-between;font-weight:700}
+.rp .wbox img{display:block;max-width:100%;max-height:45mm;margin:1.5mm 0;border:.2mm solid #ccc}
+.rp .model{white-space:pre-wrap;background:#F4F6FA;padding:1.5mm 2.5mm;border-radius:1mm;margin-top:1mm}
+.rp .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2mm;margin:3mm 0}
+.rp .stats div{border:.2mm solid #999;border-radius:1.5mm;padding:1.5mm 3mm}
+.rp .stats b{display:block;font-size:16pt}
+.rp .stats span{font-size:9pt;color:#444}
+.rp .rp-bar{display:inline-block;height:3.2mm;background:#C8374F;vertical-align:middle;border-radius:.5mm}
+.rp .rp-bar.g{background:#23835A}
+.rp .foot{font-size:8.5pt;color:#555;margin-top:3mm}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -223,6 +260,12 @@ textarea.note-input{padding:8px 10px;border:1px solid var(--line);border-radius:
       <div class="keygrid" id="writtenList" style="margin-top:12px"></div>
       <p class="note" style="margin:10px 0 0">記述欄は解答用紙の下のほうに、横幅いっぱいの枠で印刷されます。欄を増やすと、その分マーク式の問題数の上限が減ります。採点は読み取りのあと、生徒の答えの画像を見ながら点数を入力します。</p>
     </div>
+    <details class="panel" id="modelPanel">
+      <summary><strong>模範解答の文言（任意）</strong> <span class="note">― 生徒に配る個人票に、記号といっしょに印刷されます</span></summary>
+      <p class="note" style="margin:10px 0">例）問3「ウ」→「光合成」。空欄のままでも個人票は作れます（記号だけが載ります）。</p>
+      <div class="keygrid" id="keyTextGrid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
+      <div id="modelWritten" style="margin-top:12px"></div>
+    </details>
     <button class="btn main" data-goto="2">次へ：解答用紙の印刷</button>
   </section>
 
@@ -284,6 +327,8 @@ textarea.note-input{padding:8px 10px;border:1px solid var(--line);border-radius:
       <div class="summary" id="summary"></div>
       <div class="row" style="margin-top:12px">
         <button class="btn main" id="btnCsv">CSVで出力（Excelで開けます）</button>
+        <button class="btn" id="btnSlips" title="1人1枚。解答・正答・模範解答・得点を載せた、生徒に配る用紙を印刷します">個人票を印刷（生徒に配る）</button>
+        <button class="btn" id="btnReport" title="平均点・得点分布・設問ごとの正答率・名簿を印刷します">成績一覧・分析を印刷</button>
         <button class="btn" id="btnNextCheck">次の要確認へ</button>
         <button class="btn" id="btnWritten" hidden>記述を採点する</button>
       </div>
@@ -308,6 +353,11 @@ textarea.note-input{padding:8px 10px;border:1px solid var(--line);border-radius:
       <h3>記述式の問題</h3>
       <p>「正答と配点」の下で記述欄の数と高さ、見出し、配点を決めると、解答用紙の下のほうに記述欄が印刷されます。読み取りのあと「記述を採点する」を押すと、その問題の全員分の答えが画像で並ぶので、点数を入れて Enter で次の人へ進めます。</p>
       <p>記述欄の数や高さを読み取りのあとに変えると、マークの位置がずれて正しく採点できません。変えた場合は読み取り直してください。</p>
+      <h3>生徒に返す・成績をまとめる</h3>
+      <p>「結果の確認と出力」の<strong>「個人票を印刷」</strong>で、1人1枚の個人票を印刷できます。得点・平均点、問題ごとの自分の解答と正答（○×）、記述の答えの画像と模範解答が載ります。そのまま生徒に配れます。</p>
+      <p>正答の記号だけでなく文言（例：ウ →「光合成」）も載せたいときは、「正答と配点」の下にある<strong>「模範解答の文言」</strong>を開いて入力します。記述式の模範解答もここに入れます。空欄のままでもかまいません。</p>
+      <p><strong>「成績一覧・分析を印刷」</strong>では、平均点・中央値・最高点・最低点・標準偏差、得点分布、組ごとの成績、設問ごとの正答率と選択肢の割合、名簿（順位つき）を印刷します。</p>
+      <p>どちらも印刷画面で送信先を「PDFに保存」にすれば、PDFファイルとして残せます。印刷前に要確認や記述の未採点が残っていると、お知らせが出ます。記述の答えの画像は、読み取りをしたその画面でしか載りません（バックアップには画像が入らないため）。</p>
       <h3>データの保存について</h3>
       <p>入力した内容はこのPCのブラウザに自動で保存されます。ただしブラウザの履歴削除などで消えることがあるため、テストごとに右上の「バックアップを保存」でファイルに残してください。ファイル名は日付とテスト名になります。</p>
       <p>バックアップには設定と採点結果が入ります。スキャン画像は容量が大きいので入りません。元のPDFは校内の決められた場所に保管してください。</p>
@@ -327,7 +377,7 @@ textarea.note-input{padding:8px 10px;border:1px solid var(--line);border-radius:
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -516,7 +566,7 @@ const OMR = (() => {
    ============================================================ */
 const STORE_KEY = 'marksheet-saiten-v1';
 const state = {
-  settings: { testName: '', note: '', nQ: 20, nC: 4, key: [], points: [], threshold: 0.35, written: [], writtenSize: 3 },
+  settings: { testName: '', note: '', nQ: 20, nC: 4, key: [], keyText: [], points: [], threshold: 0.35, written: [], writtenSize: 3 },
   results: []   // { uid, source, fills, idFills, H, rotated, manual:{}, manualId:null, written:[], layoutRows, error }
 };
 const images = {};   // uid → 画像dataURL（保存しない）
@@ -526,12 +576,14 @@ function normalizeSettings(){
   if (!Array.isArray(s.written)) s.written = [];
   s.writtenSize = [2, 3, 5].includes(+s.writtenSize) ? +s.writtenSize : 3;
   while (s.written.length * s.writtenSize > LAYOUT.answers.perCol - 1) s.written.pop();   // マーク欄を最低1行残す
-  s.written.forEach((w, i) => { if (w.label === undefined) w.label = `記述${i+1}`; w.points = Math.max(0, +w.points || 0); });
+  s.written.forEach((w, i) => { if (w.label === undefined) w.label = `記述${i+1}`; w.points = Math.max(0, +w.points || 0); if (typeof w.model !== 'string') w.model = ''; });
+  if (!Array.isArray(s.keyText)) s.keyText = [];                          // v1.5 で追加：正答の文言（古いバックアップには無い）
   s.nQ = Math.max(1, Math.min(maxMarkQ(), +s.nQ || 1));
   s.nC = Math.max(2, Math.min(LAYOUT.maxC, +s.nC || 4));
   for (let i = 0; i < LAYOUT.maxQ; i++){
     if (s.key[i] === undefined || s.key[i] >= s.nC) s.key[i] = null;
     if (s.points[i] === undefined || s.points[i] === null) s.points[i] = 2;
+    if (typeof s.keyText[i] !== 'string') s.keyText[i] = '';
   }
 }
 let saveTimer = null;
@@ -673,7 +725,28 @@ function renderSettings(){
     grid.appendChild(row);
   }
   renderWrittenSettings();
+  renderModelAnswers();
   updateKeyStatus();
+}
+/** 模範解答の文言（個人票に載せる）。入力中に描き直すとカーソルが飛ぶので、入力では描き直さない */
+function renderModelAnswers(){
+  const s = state.settings, grid = $('#keyTextGrid'); grid.innerHTML = '';
+  for (let q = 0; q < s.nQ; q++){
+    const row = document.createElement('div'); row.className = 'krow';
+    row.innerHTML = `<span class="qn">${q+1}</span><span class="kl">${s.key[q] === null ? '−' : LAYOUT.labels[s.key[q]]}</span><input type="text" class="kt" aria-label="問${q+1}の正答の文言" placeholder="正答の文言">`;
+    const inp = row.querySelector('input'); inp.value = s.keyText[q];
+    inp.oninput = () => { s.keyText[q] = inp.value; autosave(); };
+    grid.appendChild(row);
+  }
+  const box = $('#modelWritten'); box.innerHTML = '';
+  s.written.forEach((w, j) => {
+    const lb = document.createElement('label'); lb.className = 'f'; lb.style.marginTop = '8px';
+    lb.innerHTML = `<span></span><textarea class="model-input" rows="2" placeholder="模範解答・採点の観点など"></textarea>`;
+    lb.firstChild.textContent = `${w.label}（${w.points}点）の模範解答`;
+    const ta = lb.querySelector('textarea'); ta.value = w.model;
+    ta.oninput = () => { w.model = ta.value; autosave(); };
+    box.appendChild(lb);
+  });
 }
 function updateKeyStatus(){
   const s = state.settings, f = fullScore();
@@ -1061,9 +1134,12 @@ function renderWritten(){
   area.querySelectorAll('canvas[data-crop]').forEach(cv => drawCrop(cv, state.results.find(x => x.uid === cv.dataset.crop), wIndex));
   if (inputs[0]) inputs.find(x => x.value === '')?.focus();
 }
-/** スキャン画像から記述欄 j の部分だけを切り出して表示 */
+/** スキャン画像から記述欄 j の部分だけを切り出して canvas に描く（描き終わると resolve。画像が無ければ null） */
 function drawCrop(cv, r, j){
+  return new Promise(resolve => {
+  if (!images[r.uid] || !r.H || layoutMismatch(r)) return resolve(null);
   const img = new Image();
+  img.onerror = () => resolve(null);
   img.onload = () => {
     const R = writtenRect(j);
     const pts = [[R.x, R.y], [R.x+R.w, R.y], [R.x, R.y+R.h], [R.x+R.w, R.y+R.h]].map(([x, y]) => OMR.apply(r.H, x, y));
@@ -1074,8 +1150,10 @@ function drawCrop(cv, r, j){
     const ctx = cv.getContext('2d');
     if (r.rotated){ ctx.translate(cv.width, cv.height); ctx.rotate(Math.PI); }   // 逆さに読んだ用紙は向きを戻す
     ctx.drawImage(img, x0, y0, cv.width, cv.height, 0, 0, cv.width, cv.height);
+    resolve(cv);
   };
   img.src = images[r.uid];
+  });
 }
 $('#btnNextCheck').onclick = () => {
   const list = sortedResults(), i = list.findIndex(r => r.uid === selected);
@@ -1111,6 +1189,161 @@ $('#btnCsv').onclick = () => {
   downloadFile(fileStem() + '_採点結果.csv', csv, 'text/csv');
   if (list.some(needsCheck)) toast('要確認の欄が残ったまま出力しました');
 };
+/* ---- 個人票（生徒に配る）と 成績一覧・分析 ----
+   どちらも HTML を #printArea に入れて印刷する（印刷画面で「PDFに保存」も選べる）。 */
+function scoreStats(list){
+  const sc = list.map(scoreOf).sort((a, b) => a - b), n = sc.length;
+  if (!n) return { n: 0, avg: 0, med: 0, sd: 0, max: 0, min: 0, sc };
+  const avg = sc.reduce((a, b) => a + b, 0) / n;
+  const med = n % 2 ? sc[(n-1)/2] : (sc[n/2-1] + sc[n/2]) / 2;
+  const sd = Math.sqrt(sc.reduce((a, b) => a + (b - avg) ** 2, 0) / n);
+  return { n, avg, med, sd, max: sc[n-1], min: sc[0], sc };
+}
+const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
+const idText = id => `${id.kumi === '' ? '?' : id.kumi}組 ${id.ban === '' ? '?' : id.ban}番`;
+const slipLabel = v => v === -1 ? '無回答' : v === -2 ? '複数' : LAYOUT.labels[v];
+/** 印刷前の確認。要確認・記述の未入力が残っていたら知らせる */
+function readyToPrint(list){
+  if (!list.length){ toast('印刷する結果がありません'); return false; }
+  const nChk = list.filter(needsCheck).length;
+  const nTodo = list.filter(r => state.settings.written.some((w, j) => writtenOf(r, j) === '')).length;
+  const msg = [nChk ? `要確認の用紙が ${nChk}人分` : '', nTodo ? `記述の点数が未入力の人が ${nTodo}人` : ''].filter(Boolean).join('、');
+  return !msg || confirm(`${msg}残っています。このまま印刷しますか？`);
+}
+async function printHTML(html){
+  const area = $('#printArea'); area.innerHTML = html;
+  await Promise.all([...area.querySelectorAll('img')].map(im => im.decode().catch(() => {})));
+  setTimeout(() => window.print(), 100);
+}
+
+/** 個人票：1人1ページ。解答・正答・正答の文言・得点、記述の答え（画像があれば）と模範解答 */
+async function slipsHTML(list){
+  const s = state.settings, f = fullScore(), st = scoreStats(list), today = new Date().toLocaleDateString('ja-JP');
+  const hasText = s.keyText.slice(0, s.nQ).some(t => t.trim());
+  const cols = s.nQ > 20 ? 2 : 1, per = Math.ceil(s.nQ / cols);
+  const small = cols === 2 && hasText ? ' style="font-size:9pt"' : '';
+  let out = '';
+  for (const r of list){
+    const id = idOf(r);
+    let h = `<div class="rp"><div class="rp-head"><h1>${escHtml(s.testName || 'テスト')}　結果</h1><div class="rp-id">${idText(id)}　氏名 <u></u></div></div>`;
+    h += `<div class="rp-score"><div class="big">得点<b>${scoreOf(r)}</b>点 ／ ${f.total}点</div>`
+      + (s.written.length ? `<span>マーク式 ${markScoreOf(r)}／${f.m}点　記述式 ${writtenScoreOf(r)}／${f.w}点</span>` : '')
+      + `<span>平均点 ${fmt1(st.avg)}点（${st.n}人）</span></div>`;
+    if (s.nQ){
+      h += `<h2>マーク式</h2><div class="rp-cols" style="grid-template-columns:repeat(${cols},1fr)">`;
+      for (let c = 0; c < cols; c++){
+        h += `<table${small}><thead><tr><th>問</th><th>あなたの解答</th><th>正答</th>${hasText ? '<th class="l">正答の内容</th>' : ''}<th>得点</th></tr></thead><tbody>`;
+        for (let q = c * per; q < Math.min(s.nQ, (c+1) * per); q++){
+          const a = answerOf(r, q).value, k = s.key[q], ok = k !== null && a === k, pt = +s.points[q] || 0;
+          h += `<tr class="${k !== null && !ok ? 'hl' : ''}"><td>${q+1}</td>`
+            + `<td class="${k === null ? '' : ok ? 'ok' : 'ng'}">${slipLabel(a)}${k === null ? '' : ok ? '　○' : '　×'}</td>`
+            + `<td>${k === null ? '−' : LAYOUT.labels[k]}</td>${hasText ? `<td class="l">${escHtml(s.keyText[q])}</td>` : ''}`
+            + `<td>${k === null ? '−' : (ok ? pt : 0)}／${pt}</td></tr>`;
+        }
+        h += '</tbody></table>';
+      }
+      h += '</div>';
+    }
+    if (s.written.length){
+      h += '<h2>記述式</h2>';
+      for (let j = 0; j < s.written.length; j++){
+        const w = s.written[j], v = writtenOf(r, j);
+        const cv = await drawCrop(document.createElement('canvas'), r, j);
+        h += `<div class="wbox"><div class="wbox-h"><span>${escHtml(w.label)}</span><span>${v === '' ? '未採点' : v}／${w.points}点</span></div>`
+          + (cv ? `<img src="${cv.toDataURL('image/jpeg', 0.8)}" alt="">` : '')
+          + (w.model.trim() ? `<div class="model"><b>模範解答</b>　${escHtml(w.model)}</div>` : '') + '</div>';
+      }
+    }
+    out += h + `<p class="foot">${today}　色のついた行はまちがえた問題です。見直しておきましょう。</p></div>`;
+  }
+  return out;
+}
+
+/** 成績一覧・分析：概要と得点分布 → 設問ごとの分析 → 名簿 */
+function reportHTML(list){
+  const s = state.settings, f = fullScore(), st = scoreStats(list), n = list.length;
+  const title = escHtml(s.testName || 'テスト'), today = new Date().toLocaleDateString('ja-JP');
+  const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+  const bar = (p, cls = '') => `<span class="rp-bar ${cls}" style="width:${Math.max(0, p) * 0.35}mm"></span>`;
+
+  // 1ページ目：概要・得点分布・組別
+  let h = `<div class="rp"><div class="rp-head"><h1>${title}　成績一覧・分析</h1><span>${today}</span></div>`;
+  h += `<div class="stats">
+    <div><span>受験者数</span><b>${st.n}人</b></div><div><span>満点</span><b>${f.total}点</b></div>
+    <div><span>平均点</span><b>${fmt1(st.avg)}点</b></div><div><span>中央値</span><b>${fmt1(st.med)}点</b></div>
+    <div><span>最高点</span><b>${st.max}点</b></div><div><span>最低点</span><b>${st.min}点</b></div>
+    <div><span>標準偏差</span><b>${fmt1(st.sd)}</b></div><div><span>平均得点率</span><b>${pct(st.avg, f.total)}%</b></div></div>`;
+  // 得点分布：満点を10区切り前後に分ける。幅は 1・2・5・10・20… のきりのいい値（最上位の区切りは満点を含む）
+  const step = [1, 2, 5, 10, 20, 25, 50, 100].find(v => v >= f.total / 12) || 100, nb = Math.max(1, Math.ceil(f.total / step));
+  const bins = Array(nb).fill(0);
+  st.sc.forEach(v => bins[Math.min(nb - 1, Math.floor(v / step))]++);
+  const peak = Math.max(1, ...bins);
+  h += `<h2>得点分布</h2><table><thead><tr><th>得点</th><th>人数</th><th class="l" style="width:60%">分布</th><th>割合</th></tr></thead><tbody>`;
+  for (let i = nb - 1; i >= 0; i--){
+    const lo = i * step, hi = i === nb - 1 ? f.total : (i + 1) * step - 1;
+    h += `<tr><td>${lo === hi ? lo : `${lo}〜${hi}`}点</td><td>${bins[i]}</td><td class="l">${bar(bins[i] / peak * 100)}</td><td>${pct(bins[i], n)}%</td></tr>`;
+  }
+  h += '</tbody></table>';
+  const kumis = [...new Set(list.map(r => idOf(r).kumi))].sort((a, b) => (a === '' ? 99 : a) - (b === '' ? 99 : b));
+  if (kumis.length > 1){
+    h += `<h2>組ごとの成績</h2><table><thead><tr><th>組</th><th>人数</th><th>平均点</th><th>最高点</th><th>最低点</th><th>標準偏差</th></tr></thead><tbody>`;
+    kumis.forEach(k => { const g = scoreStats(list.filter(r => idOf(r).kumi === k));
+      h += `<tr><td>${k === '' ? '不明' : k + '組'}</td><td>${g.n}</td><td>${fmt1(g.avg)}</td><td>${g.max}</td><td>${g.min}</td><td>${fmt1(g.sd)}</td></tr>`; });
+    h += '</tbody></table>';
+  }
+  if (s.written.length){
+    h += `<h2>記述式</h2><table><thead><tr><th class="l">問題</th><th>配点</th><th>平均点</th><th>得点率</th><th>満点の人数</th><th>0点の人数</th><th>未採点</th></tr></thead><tbody>`;
+    s.written.forEach((w, j) => {
+      const vs = list.map(r => writtenOf(r, j)).filter(v => v !== ''), avg = vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : 0;
+      h += `<tr><td class="l">${escHtml(w.label)}</td><td>${w.points}</td><td>${vs.length ? fmt1(avg) : '−'}</td><td>${vs.length ? pct(avg, w.points) + '%' : '−'}</td>`
+        + `<td>${vs.filter(v => v === w.points).length}</td><td>${vs.filter(v => v === 0).length}</td><td>${n - vs.length}</td></tr>`;
+    });
+    h += '</tbody></table>';
+  }
+  h += '</div>';
+
+  // 2ページ目：設問ごとの分析（選択肢ごとの割合。正答の欄は緑、正答率50%未満の行は色付き）
+  if (s.nQ){
+    h += `<div class="rp"><div class="rp-head"><h1>${title}　設問ごとの分析</h1><span>${st.n}人</span></div>
+      <p class="foot" style="margin:2mm 0">数字は各選択肢を選んだ人の割合（%）。緑が正答、色のついた行は正答率50%未満の問題です。</p>
+      <table style="font-size:${s.nC > 6 ? 8.5 : 9.5}pt"><thead><tr><th>問</th><th>正答</th><th>配点</th><th class="l">正答率</th>`;
+    for (let c = 0; c < s.nC; c++) h += `<th>${LAYOUT.labels[c]}</th>`;
+    h += '<th>無回答</th><th>複数</th></tr></thead><tbody>';
+    for (let q = 0; q < s.nQ; q++){
+      const k = s.key[q], cnt = Array(s.nC).fill(0); let none = 0, multi = 0;
+      list.forEach(r => { const v = answerOf(r, q).value; if (v === -1) none++; else if (v === -2) multi++; else if (v < s.nC) cnt[v]++; });
+      const rate = k === null ? null : pct(cnt[k], n);
+      h += `<tr class="${rate !== null && rate < 50 ? 'hl' : ''}"><td>${q+1}</td><td>${k === null ? '−' : LAYOUT.labels[k]}</td><td>${s.points[q]}</td>`
+        + `<td class="l" style="white-space:nowrap">${rate === null ? '−' : `${bar(rate * 0.6, 'g')} ${rate}%`}</td>`
+        + cnt.map((v, c) => `<td class="${c === k ? 'cor' : ''}">${pct(v, n)}</td>`).join('')
+        + `<td>${pct(none, n)}</td><td>${pct(multi, n)}</td></tr>`;
+    }
+    h += '</tbody></table></div>';
+  }
+
+  // 3ページ目以降：名簿（組・番号順。順位は同点なら同じ順位）
+  const hasW = s.written.length > 0;
+  h += `<div class="rp"><div class="rp-head"><h1>${title}　名簿</h1><span>満点 ${f.total}点</span></div>
+    <table style="margin-top:3mm"><thead><tr><th>組</th><th>番号</th><th>得点</th>${hasW ? '<th>マーク式</th><th>記述式</th>' : ''}<th>得点率</th><th>順位</th><th class="l">備考</th></tr></thead><tbody>`;
+  list.forEach(r => {
+    const id = idOf(r), sc = scoreOf(r), rank = st.sc.filter(v => v > sc).length + 1;
+    const memo = [needsCheck(r) ? '要確認' : '', s.written.some((w, j) => writtenOf(r, j) === '') ? '記述未採点' : ''].filter(Boolean).join('・');
+    h += `<tr><td>${id.kumi}</td><td>${id.ban}</td><td><b>${sc}</b></td>${hasW ? `<td>${markScoreOf(r)}</td><td>${writtenScoreOf(r)}</td>` : ''}<td>${pct(sc, f.total)}%</td><td>${rank}</td><td class="l">${memo}</td></tr>`;
+  });
+  return h + '</tbody></table></div>';
+}
+$('#btnSlips').onclick = async () => {
+  const list = sortedResults().filter(r => !r.error);
+  if (!readyToPrint(list)) return;
+  toast('個人票を作っています…');
+  await printHTML(await slipsHTML(list));
+};
+$('#btnReport').onclick = () => {
+  const list = sortedResults().filter(r => !r.error);
+  if (!readyToPrint(list)) return;
+  printHTML(reportHTML(list));
+};
+
 $('#btnBackup').onclick = () => {
   const data = { app: 'marksheet-saiten', version: 1, savedAt: new Date().toISOString(), settings: state.settings,
     results: state.results.map(r => Object.assign({}, r)) };
@@ -1123,7 +1356,7 @@ $('#fileBackup').onchange = async e => {
     const d = JSON.parse(await f.text());
     if (d.app !== 'marksheet-saiten') throw new Error('このアプリのバックアップファイルではありません');
     if (state.results.length && !confirm('今の内容をバックアップの内容に置き換えます。よろしいですか？')) return;
-    state.settings = Object.assign({ testName: '', note: '', nQ: 20, nC: 4, key: [], points: [], threshold: 0.35, written: [], writtenSize: 3 }, d.settings);
+    state.settings = Object.assign({ testName: '', note: '', nQ: 20, nC: 4, key: [], keyText: [], points: [], threshold: 0.35, written: [], writtenSize: 3 }, d.settings);
     state.results = d.results || []; normalizeSettings(); selected = null;
     initInputs(); renderSettings(); autosave(); showStep(1);
     toast('バックアップを開きました');
