@@ -839,7 +839,7 @@ function sheetSVG(){
   // 解答欄
   for (let q = 0; q < s.nQ; q++){
     const [x0, y] = bubblePos(q, 0);
-    const col = L.answers.cols[Math.floor(q / L.answers.perCol)];
+    const col = L.answers.cols[Math.floor(q / perCol())];   // 記述欄があると1列の行数が減るので perCol() で決める
     if (q % 5 === 0 && q % perCol() !== 0) o += `<line x1="${col.numX-8}" y1="${y-L.answers.dy/2}" x2="${x0+(s.nC-1)*L.answers.dx+4}" y2="${y-L.answers.dy/2}" stroke="#ccc" stroke-width=".25"/>`;
     o += `<text x="${col.numX}" y="${y+1.2}" text-anchor="end" font-size="3.3" font-weight="700">${q+1}</text>`;
     for (let c = 0; c < s.nC; c++){ const [x] = bubblePos(q, c); o += bub(x, y, L.labels[c]); }
@@ -917,7 +917,7 @@ async function handleFiles(files){
   try {
     for (const f of files){
       if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)){
-        if (!window.pdfjsLib){ log.insertAdjacentHTML('beforeend', `<div>${f.name}：PDFを開けません（インターネット接続が必要）</div>`); continue; }
+        if (!window.pdfjsLib){ log.insertAdjacentHTML('beforeend', `<div>${escHtml(f.name)}：PDFを開けません（インターネット接続が必要）</div>`); continue; }
         const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
         for (let i = 1; i <= pdf.numPages; i++) pages.push({ name: `${f.name} ${i}ページ`, pdf, i });
       } else if (/^image\//.test(f.type)) pages.push({ name: f.name, file: f });
@@ -943,14 +943,14 @@ async function handleFiles(files){
       const uid = Date.now().toString(36) + k;
       images[uid] = canvas.toDataURL('image/jpeg', 0.7);
       state.results.push(Object.assign({ uid, source: p.name, manual: {}, manualId: null, written: [], layoutRows: perCol(), imgW: canvas.width, imgH: canvas.height }, res));
-      if (res.error){ ng++; log.insertAdjacentHTML('afterbegin', `<div>${p.name}：${res.error}</div>`); } else ok++;
+      if (res.error){ ng++; log.insertAdjacentHTML('afterbegin', `<div>${escHtml(p.name)}：${res.error}</div>`); } else ok++;
       bar.style.width = ((k+1) / pages.length * 100) + '%';
       await new Promise(r => setTimeout(r, 0));   // 画面を固まらせない
     }
     log.insertAdjacentHTML('afterbegin', `<div><strong>${ok}枚を読み取りました</strong>${ng ? `（${ng}枚は読み取れず、結果画面で確認できます）` : ''}</div>`);
     autosave();
   } catch (e) {
-    log.insertAdjacentHTML('afterbegin', `<div class="err">読み込み中に問題が起きました：${e.message}</div>`);
+    log.insertAdjacentHTML('afterbegin', `<div class="err">読み込み中に問題が起きました：${escHtml(e.message)}</div>`);
   }
   busy = false;
 }
@@ -991,7 +991,7 @@ function renderResults(){
     const id = idOf(r), chk = needsCheck(r);
     h += `<tr data-uid="${r.uid}" class="${r.uid === selected ? 'sel' : ''}">`;
     if (r.error){
-      h += `<td class="c-chk">?</td><td class="c-chk">?</td><td>−</td><td class="l"><span class="badge">${r.error}</span></td><td colspan="${s.nQ + s.written.length}" class="l note">${r.source}</td></tr>`;
+      h += `<td class="c-chk">?</td><td class="c-chk">?</td><td>−</td><td class="l"><span class="badge">${r.error}</span></td><td colspan="${s.nQ + s.written.length}" class="l note">${escHtml(r.source)}</td></tr>`;
       return;
     }
     const idc = id.check || dup.has(r.uid) ? 'c-chk' : '';
@@ -1028,7 +1028,7 @@ function renderDetail(){
   if (!r){ area.innerHTML = ''; return; }
   const s = state.settings, id = idOf(r);
   let h = `<div class="panel detail"><div>
-      <div class="row" style="justify-content:space-between;margin-bottom:8px"><strong>${r.source}</strong>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px"><strong>${escHtml(r.source)}</strong>
       <button class="btn small" id="btnDel">この用紙を削除</button></div>`;
   h += images[r.uid] ? `<canvas id="scanView"></canvas><p class="note">赤い枠：読み取ったマーク／黄色：あいまいな箇所</p>`
                      : `<div class="warn">画像はバックアップに含まれないため表示できません。必要なら元のPDFを見て確認してください。</div>`;
