@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.3
+ マークシート採点アプリ  ver 1.4
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -22,6 +22,7 @@
 
  【よくある修正】
    ・読み取りが甘い／厳しい → 画面の「読み取りの感度」で調整
+   ・LAYOUT や OMR を直したら → 「使い方・引き継ぎ」の「自己診断を実行」で確認
    ・設問数・選択肢の上限を変えたい → LAYOUT を変更
      （印刷位置と読み取り位置が同時に変わるので、必ず印刷し直す）
 ============================================================
@@ -318,11 +319,15 @@ textarea.note-input{padding:8px 10px;border:1px solid var(--line);border-radius:
         <li>消し跡を拾ってしまう → 感度を「濃い塗りだけ」側へ動かします。</li>
         <li>PDFが読み込めない → PDFの読み込みにはインターネット接続が必要です。接続できない場合はJPG/PNGでスキャンしてください。</li>
       </ul>
+      <h3>読み取りの自己診断</h3>
+      <p>下のボタンを押すと、傾いた用紙・逆さの用紙・記述欄つきの用紙などのテスト画像をこの画面の中で作り、正しく読み取れるかを確かめます。インストールは不要で、データも変わりません。プログラムを修正したあとや、別のPCに引き継いだときに実行してください。</p>
+      <p><button class="btn" id="btnSelfTest">自己診断を実行</button></p>
+      <pre id="selfTestOut" class="note" style="white-space:pre-wrap"></pre>
       <h3>引き継ぐ方へ</h3>
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -1123,6 +1128,84 @@ $('#fileBackup').onchange = async e => {
     initInputs(); renderSettings(); autosave(); showStep(1);
     toast('バックアップを開きました');
   } catch (err) { alert('開けませんでした：' + err.message); }
+};
+
+/* ---- 使い方ページ：読み取りの自己診断 ----
+   テスト用の用紙画像をcanvasに描き、OMR で読んで正解と比べる。
+   用紙の描き方は LAYOUT の値をそのまま使う（LAYOUT を変えてもテストは直さなくてよい）。 */
+function makeTestSheet(nWritten, wSize, rot, flip){
+  const S = 8, P = LAYOUT.page, A = LAYOUT.answers, pc = A.perCol - nWritten * wSize;
+  const src = document.createElement('canvas'); src.width = P.w * S; src.height = P.h * S;
+  const d = src.getContext('2d'), gray = v => `rgb(${v},${v},${v})`;
+  d.fillStyle = '#fff'; d.fillRect(0, 0, src.width, src.height);
+  d.fillStyle = '#000';
+  const m = LAYOUT.marker.size;
+  LAYOUT.marker.centers.forEach(([x, y]) => d.fillRect((x - m/2)*S, (y - m/2)*S, m*S, m*S));   // 四隅マーカー
+  const O = LAYOUT.orient; d.fillRect((O.x - O.size/2)*S, (O.y - O.size/2)*S, O.size*S, O.size*S); // 上下判定マーク
+  const bubble = (x, y, fill) => {                                   // 枠だけ or 塗りつぶし
+    d.beginPath(); d.ellipse(x*S, y*S, LAYOUT.bubble.rx*S - 1, LAYOUT.bubble.ry*S - 1, 0, 0, Math.PI*2);
+    if (fill) { d.fillStyle = gray(90); d.fill(); }
+    d.strokeStyle = gray(100); d.lineWidth = 2; d.stroke();
+  };
+  const pos = (q, c) => [A.cols[Math.floor(q / pc)].x0 + c * A.dx, A.y0 + (q % pc) * A.dy];
+  const answers = [];
+  for (let q = 0; q < pc * A.cols.length; q++){
+    const a = q === 5 ? -2 : (q % 7 === 6 ? -1 : q % 10);           // 7問ごとに無回答、問6は複数マーク
+    answers.push(a);
+    for (let c = 0; c < LAYOUT.maxC; c++){ const [x, y] = pos(q, c); bubble(x, y, a === c || (a === -2 && (c === 1 || c === 9))); }
+  }
+  const id = [3, 2, 7], I = LAYOUT.id;
+  I.rows.forEach((r, i) => { for (let k = 0; k < 10; k++) bubble(I.x0 + k*I.dx, r.y, id[i] === k); });
+  d.fillStyle = gray(40);                                            // 塗りつぶし例（読み取りでは無視されるはず）
+  [62, 121, 148].forEach(x => { d.beginPath(); d.ellipse(x*S, LAYOUT.example.y*S, 3.5*S, 2.5*S, 0, 0, Math.PI*2); d.fill(); });
+  for (let j = 0; j < nWritten; j++){                                // 記述欄と手書き風の線
+    const top = A.y0 - A.dy/2 + (pc + j*wSize)*A.dy + 0.8;
+    d.strokeStyle = gray(136); d.lineWidth = 2; d.strokeRect(20*S, top*S, 170*S, (wSize*A.dy - 1.6)*S);
+    d.strokeStyle = gray(30); d.lineWidth = 5;
+    for (let k = 0; k < 12; k++){ d.beginPath(); d.moveTo((30 + k*10)*S, (top + 5)*S); d.lineTo((36 + k*10)*S, (top + 9)*S); d.stroke(); }
+  }
+  // 傾け・逆さにして、スキャナ程度の解像度（横1400px）に縮める
+  const out = document.createElement('canvas'); out.width = 1400; out.height = Math.round(1400 * P.h / P.w);
+  const o = out.getContext('2d');
+  o.fillStyle = gray(250); o.fillRect(0, 0, out.width, out.height);
+  o.translate(out.width/2, out.height/2); o.scale(out.width / src.width, out.width / src.width);
+  o.rotate((-rot + (flip ? 180 : 0)) * Math.PI / 180);
+  o.drawImage(src, -src.width/2, -src.height/2);
+  return { canvas: out, answers, id };
+}
+function runSelfTest(){
+  const cases = [
+    ['傾いた用紙',                 0, 3,  1.5, false],
+    ['逆さで傾いた用紙',           0, 3, -1.0, true ],
+    ['記述欄3つ',                  3, 3,  1.0, false],
+    ['記述欄2つ（高い）・逆さ',    2, 5, -1.2, true ],
+  ];
+  const saved = state.settings, lines = []; let fail = 0;
+  try {
+    for (const [name, nW, wS, rot, flip] of cases){
+      state.settings = Object.assign({}, saved, { written: Array(nW).fill({}), writtenSize: wS });   // 一時的に差し替え
+      const t = makeTestSheet(nW, wS, rot, flip), c = t.canvas;
+      const img = c.getContext('2d').getImageData(0, 0, c.width, c.height);
+      const r = OMR.analyze(OMR.toGray(img.data, c.width, c.height), c.width, c.height);
+      const errs = [];
+      if (r.error) errs.push(r.error);
+      else {
+        if (r.rotated !== flip) errs.push('上下の判定が違う');
+        const id = r.idFills.map(f => OMR.decide(f, 0.35).value);
+        if (id.join() !== t.id.join()) errs.push(`組・番号 ${id}（正解 ${t.id}）`);
+        t.answers.forEach((a, q) => { const v = OMR.decide(r.fills[q].slice(0, LAYOUT.maxC), 0.35).value; if (v !== a) errs.push(`問${q+1}: ${v}（正解 ${a}）`); });
+      }
+      if (errs.length) fail++;
+      lines.push((errs.length ? '× 失敗　' : '○ 成功　') + name + (errs.length ? '\n　　' + errs.slice(0, 10).join('\n　　') : ''));
+    }
+  } catch (err) { fail++; lines.push('× エラー　' + err.message); }
+  finally { state.settings = saved; }
+  lines.push(fail ? `\n${fail}件失敗しました。読み取り処理（LAYOUT・OMR）を確認してください。` : '\nすべて成功しました。');
+  return { ok: !fail, text: lines.join('\n') };
+}
+$('#btnSelfTest').onclick = () => {
+  $('#selfTestOut').textContent = '実行中…';
+  setTimeout(() => { const r = runSelfTest(); $('#selfTestOut').textContent = r.text; $('#selfTestOut').style.color = r.ok ? 'var(--ok)' : 'var(--rose)'; }, 30);
 };
 
 /* ---- 起動 ---- */
