@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.5
+ マークシート採点アプリ  ver 1.6
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -158,7 +158,8 @@ textarea.note-input,textarea.model-input{padding:8px 10px;border:1px solid var(-
 
 details.panel summary{cursor:pointer}
 .krow .kl{width:24px;text-align:center;font-weight:700;color:var(--rose)}
-.krow input.kt{flex:1;min-width:0;padding:4px 8px;border:1px solid var(--line);border-radius:6px}
+#keyTextGrid .krow{flex-wrap:wrap}
+.krow input.kt{flex:1;min-width:140px;padding:4px 8px;border:1px solid var(--line);border-radius:6px}
 
 /* 印刷時は #printArea の中身（解答用紙・個人票・成績一覧のどれか）だけを出す */
 #printArea{display:none}
@@ -261,9 +262,18 @@ details.panel summary{cursor:pointer}
       <p class="note" style="margin:10px 0 0">記述欄は解答用紙の下のほうに、横幅いっぱいの枠で印刷されます。欄を増やすと、その分マーク式の問題数の上限が減ります。採点は読み取りのあと、生徒の答えの画像を見ながら点数を入力します。</p>
     </div>
     <details class="panel" id="modelPanel">
-      <summary><strong>模範解答の文言（任意）</strong> <span class="note">― 生徒に配る個人票に、記号といっしょに印刷されます</span></summary>
-      <p class="note" style="margin:10px 0">例）問3「ウ」→「光合成」。空欄のままでも個人票は作れます（記号だけが載ります）。</p>
-      <div class="keygrid" id="keyTextGrid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
+      <summary><strong>模範解答・観点・採点の特例（任意）</strong> <span class="note">― 個人票に載せる正答の文言、観点別の集計、別解・全員正解</span></summary>
+      <ul class="note" style="margin:10px 0;padding-left:1.3em">
+        <li><b>正答の文言</b>：個人票に記号といっしょに印刷されます（例：ウ →「光合成」）。空欄なら記号だけが載ります。</li>
+        <li><b>観点</b>：設定すると、観点ごとの得点が個人票・成績一覧・CSVに出ます。観点の名前を空欄にすると、その観点は使いません。</li>
+        <li><b>別解</b>：もう1つの選択肢も正解にします。<b>全員正解</b>：出題ミスなどで、その問題を全員正解にします。読み取りのあとに変えても、すぐ得点に反映されます。</li>
+      </ul>
+      <div class="row" style="gap:10px;margin-bottom:10px" id="kantenNames"></div>
+      <div class="row" style="gap:6px;margin-bottom:12px;align-items:center;font-size:13px">
+        観点の一括設定：問<input type="number" id="kBulkFrom" min="1" value="1" style="width:56px;padding:3px 4px;border:1px solid var(--line);border-radius:6px">〜<input type="number" id="kBulkTo" min="1" value="10" style="width:56px;padding:3px 4px;border:1px solid var(--line);border-radius:6px">を
+        <select id="kBulkSel" style="padding:3px 4px;border:1px solid var(--line);border-radius:6px"></select>に <button class="btn small" id="btnKBulk">適用</button>
+      </div>
+      <div class="keygrid" id="keyTextGrid" style="grid-template-columns:repeat(auto-fill,minmax(min(540px,100%),1fr))"></div>
       <div id="modelWritten" style="margin-top:12px"></div>
     </details>
     <button class="btn main" data-goto="2">次へ：解答用紙の印刷</button>
@@ -332,6 +342,11 @@ details.panel summary{cursor:pointer}
         <button class="btn" id="btnNextCheck">次の要確認へ</button>
         <button class="btn" id="btnWritten" hidden>記述を採点する</button>
       </div>
+      <div class="row" style="margin-top:12px;align-items:center;gap:10px">
+        <label class="btn small" title="組・番号・氏名の3列のCSV（Excelで作ったものでよい）">名簿（氏名）を読み込む<input type="file" id="fileRoster" accept=".csv,.txt" hidden></label>
+        <span class="note" id="rosterState"></span>
+        <button class="btn small" id="btnRosterClear" hidden>名簿を消す</button>
+      </div>
     </div>
     <div id="layoutWarn"></div>
     <div id="writtenArea"></div>
@@ -355,8 +370,13 @@ details.panel summary{cursor:pointer}
       <p>記述欄の数や高さを読み取りのあとに変えると、マークの位置がずれて正しく採点できません。変えた場合は読み取り直してください。</p>
       <h3>生徒に返す・成績をまとめる</h3>
       <p>「結果の確認と出力」の<strong>「個人票を印刷」</strong>で、1人1枚の個人票を印刷できます。得点・平均点、問題ごとの自分の解答と正答（○×）、記述の答えの画像と模範解答が載ります。そのまま生徒に配れます。</p>
-      <p>正答の記号だけでなく文言（例：ウ →「光合成」）も載せたいときは、「正答と配点」の下にある<strong>「模範解答の文言」</strong>を開いて入力します。記述式の模範解答もここに入れます。空欄のままでもかまいません。</p>
-      <p><strong>「成績一覧・分析を印刷」</strong>では、平均点・中央値・最高点・最低点・標準偏差、得点分布、組ごとの成績、設問ごとの正答率と選択肢の割合、名簿（順位つき）を印刷します。</p>
+      <p>正答の記号だけでなく文言（例：ウ →「光合成」）も載せたいときは、「正答と配点」の下にある<strong>「模範解答・観点・採点の特例」</strong>を開いて入力します。記述式の模範解答もここに入れます。空欄のままでもかまいません。</p>
+      <p><strong>「成績一覧・分析を印刷」</strong>では、平均点・中央値・最高点・最低点・標準偏差、得点分布、組ごとの成績、観点別の成績、設問ごとの正答率と選択肢の割合、名簿（順位つき）を印刷します。</p>
+      <p><strong>氏名を入れるには</strong>：「結果の確認と出力」の「名簿（氏名）を読み込む」で、1列目に組・2列目に番号・3列目に氏名を入れたCSVを読み込みます（Excelで「CSV」形式で保存したものでかまいません。1行目の見出しは自動で飛ばします）。個人票・名簿・CSVに氏名が入ります。名簿は次のテストでもそのまま使えます。</p>
+      <h3>観点別の集計・出題ミスへの対応</h3>
+      <p>「模範解答・観点・採点の特例」で、問題ごとに観点（知識・技能／思考・判断・表現など）を選ぶと、観点ごとの得点が個人票・成績一覧・CSVに出ます。「問1〜10を知識・技能に」のような一括設定もできます。観点の名前は変えられます。</p>
+      <p>出題ミスが後から分かったときは、その問題に<strong>「全員正解」</strong>を付けるか、<strong>「別解」</strong>でもう1つの選択肢も正解にします。読み取り直す必要はなく、すぐ得点に反映されます。</p>
+      <p>手で直した解答を機械の判定に戻したいときは、その問題の選択欄で「自動判定に戻す」を選びます。用紙ごとまとめて戻すボタンもあります。</p>
       <p>どちらも印刷画面で送信先を「PDFに保存」にすれば、PDFファイルとして残せます。印刷前に要確認や記述の未採点が残っていると、お知らせが出ます。記述の答えの画像は、読み取りをしたその画面でしか載りません（バックアップには画像が入らないため）。</p>
       <h3>データの保存について</h3>
       <p>入力した内容はこのPCのブラウザに自動で保存されます。ただしブラウザの履歴削除などで消えることがあるため、テストごとに右上の「バックアップを保存」でファイルに残してください。ファイル名は日付とテスト名になります。</p>
@@ -368,6 +388,7 @@ details.panel summary{cursor:pointer}
         <li>塗ったのに無回答になる → 「読み取り」の感度を「薄い塗りも拾う」側へ動かします。</li>
         <li>消し跡を拾ってしまう → 感度を「濃い塗りだけ」側へ動かします。</li>
         <li>PDFが読み込めない → PDFの読み込みにはインターネット接続が必要です。接続できない場合はJPG/PNGでスキャンしてください。</li>
+        <li>両面スキャンで裏面の白紙が入った → 白紙のページは自動で飛ばします（読み取り後に「白紙のページ ○枚は飛ばしました」と出ます）。</li>
       </ul>
       <h3>読み取りの自己診断</h3>
       <p>下のボタンを押すと、傾いた用紙・逆さの用紙・記述欄つきの用紙などのテスト画像をこの画面の中で作り、正しく読み取れるかを確かめます。インストールは不要で、データも変わりません。プログラムを修正したあとや、別のPCに引き継いだときに実行してください。</p>
@@ -377,7 +398,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -567,8 +588,10 @@ const OMR = (() => {
 const STORE_KEY = 'marksheet-saiten-v1';
 const state = {
   settings: { testName: '', note: '', nQ: 20, nC: 4, key: [], keyText: [], points: [], threshold: 0.35, written: [], writtenSize: 3 },
-  results: []   // { uid, source, fills, idFills, H, rotated, manual:{}, manualId:null, written:[], layoutRows, error }
+  results: [],  // { uid, source, fills, idFills, H, rotated, manual:{}, manualId:null, written:[], layoutRows, error }
+  roster: []    // 名簿 { kumi, ban, name }。テストが変わっても使い回す（「読み取り結果をすべて消す」でも消えない）
 };
+const KANTEN_MAX = 3;   // 観点の数の上限（知識・技能／思考・判断・表現／主体的に学習に取り組む態度）
 const images = {};   // uid → 画像dataURL（保存しない）
 
 function normalizeSettings(){
@@ -576,15 +599,31 @@ function normalizeSettings(){
   if (!Array.isArray(s.written)) s.written = [];
   s.writtenSize = [2, 3, 5].includes(+s.writtenSize) ? +s.writtenSize : 3;
   while (s.written.length * s.writtenSize > LAYOUT.answers.perCol - 1) s.written.pop();   // マーク欄を最低1行残す
-  s.written.forEach((w, i) => { if (w.label === undefined) w.label = `記述${i+1}`; w.points = Math.max(0, +w.points || 0); if (typeof w.model !== 'string') w.model = ''; });
-  if (!Array.isArray(s.keyText)) s.keyText = [];                          // v1.5 で追加：正答の文言（古いバックアップには無い）
+  const kIdx = v => Number.isInteger(v) && v >= 0 && v < KANTEN_MAX ? v : -1;
+  s.written.forEach((w, i) => {
+    if (w.label === undefined) w.label = `記述${i+1}`; w.points = Math.max(0, +w.points || 0);
+    if (typeof w.model !== 'string') w.model = '';
+    w.kanten = kIdx(w.kanten);
+  });
+  // v1.5 以降で増えた項目。古いバックアップには無いので、ここで初期値を入れる
+  if (!Array.isArray(s.keyText)) s.keyText = [];                          // v1.5 正答の文言
+  if (!Array.isArray(s.keyAlt)) s.keyAlt = [];                            // v1.6 別解（もう1つの正解）
+  if (!Array.isArray(s.allOk)) s.allOk = [];                              // v1.6 全員正解にする（出題ミスなど）
+  if (!Array.isArray(s.qKanten)) s.qKanten = [];                          // v1.6 設問の観点（-1 はなし）
+  if (!Array.isArray(s.kanten)) s.kanten = ['知識・技能', '思考・判断・表現', ''];
+  for (let k = 0; k < KANTEN_MAX; k++) if (typeof s.kanten[k] !== 'string') s.kanten[k] = '';
+  s.kanten.length = KANTEN_MAX;
   s.nQ = Math.max(1, Math.min(maxMarkQ(), +s.nQ || 1));
   s.nC = Math.max(2, Math.min(LAYOUT.maxC, +s.nC || 4));
   for (let i = 0; i < LAYOUT.maxQ; i++){
     if (s.key[i] === undefined || s.key[i] >= s.nC) s.key[i] = null;
     if (s.points[i] === undefined || s.points[i] === null) s.points[i] = 2;
     if (typeof s.keyText[i] !== 'string') s.keyText[i] = '';
+    if (!Number.isInteger(s.keyAlt[i]) || s.keyAlt[i] >= s.nC || s.keyAlt[i] === s.key[i] || s.key[i] === null) s.keyAlt[i] = null;
+    s.allOk[i] = s.allOk[i] === true;
+    s.qKanten[i] = kIdx(s.qKanten[i]);
   }
+  if (!Array.isArray(state.roster)) state.roster = [];
 }
 let saveTimer = null;
 function autosave(){
@@ -601,7 +640,7 @@ function autosave(){
 function restore(){
   try {
     const t = localStorage.getItem(STORE_KEY);
-    if (t){ const d = JSON.parse(t); Object.assign(state.settings, d.settings || {}); state.results = d.results || []; }
+    if (t){ const d = JSON.parse(t); Object.assign(state.settings, d.settings || {}); state.results = d.results || []; state.roster = d.roster || []; }
   } catch (e) { /* 読めなければ初期状態で開始 */ }
   normalizeSettings();
 }
@@ -635,10 +674,48 @@ function idOf(r){
     check: bad
   };
 }
+/** 設問 q を採点するか（正答が決まっている、または全員正解にした） */
+function isScored(q){ const s = state.settings; return s.allOk[q] || s.key[q] !== null; }
+/** 解答 v が設問 q の正解か。別解・全員正解もここで扱う（正誤の判定は必ずこの関数を通す） */
+function isCorrect(q, v){
+  const s = state.settings;
+  if (s.allOk[q]) return true;
+  return s.key[q] !== null && (v === s.key[q] || (s.keyAlt[q] !== null && v === s.keyAlt[q]));
+}
+/** 正答の表示。例：ア／ア・イ（別解あり）／全員正解 */
+function keyLabel(q){
+  const s = state.settings;
+  if (s.allOk[q]) return '全員正解';
+  if (s.key[q] === null) return '−';
+  return LAYOUT.labels[s.key[q]] + (s.keyAlt[q] !== null ? '・' + LAYOUT.labels[s.keyAlt[q]] : '');
+}
 function markScoreOf(r){
   const s = state.settings; let sc = 0;
-  for (let q = 0; q < s.nQ; q++) if (s.key[q] !== null && answerOf(r, q).value === s.key[q]) sc += +s.points[q] || 0;
+  for (let q = 0; q < s.nQ; q++) if (isCorrect(q, answerOf(r, q).value)) sc += +s.points[q] || 0;
   return sc;
+}
+/** 使われている観点の一覧 [{ k, name }]（名前があり、設問か記述が1つ以上割り当てられているもの） */
+function activeKanten(){
+  const s = state.settings;
+  return s.kanten.map((name, k) => ({ k, name: name.trim() }))
+    .filter(o => o.name && (s.qKanten.slice(0, s.nQ).includes(o.k) || s.written.some(w => w.kanten === o.k)));
+}
+/** 観点ごとの得点 [{ name, score, full }] */
+function kantenScoresOf(r){
+  const s = state.settings;
+  return activeKanten().map(({ k, name }) => {
+    let score = 0, full = 0;
+    for (let q = 0; q < s.nQ; q++) if (s.qKanten[q] === k){ full += +s.points[q] || 0; if (isCorrect(q, answerOf(r, q).value)) score += +s.points[q] || 0; }
+    s.written.forEach((w, j) => { if (w.kanten === k){ full += w.points; score += +writtenOf(r, j) || 0; } });
+    return { name, score, full };
+  });
+}
+/** 名簿から氏名を引く（名簿が無い・見つからなければ ''） */
+function nameOf(r){
+  const id = idOf(r);
+  if (id.kumi === '' || id.ban === '') return '';
+  const p = state.roster.find(x => x.kumi === id.kumi && x.ban === id.ban);
+  return p ? p.name : '';
 }
 /** 記述 j の得点。未入力は '' */
 function writtenOf(r, j){ const v = r.written ? r.written[j] : undefined; return v === undefined || v === null ? '' : v; }
@@ -713,7 +790,7 @@ function renderSettings(){
       b.className = 'choice'; b.textContent = LAYOUT.labels[c];
       b.setAttribute('aria-pressed', s.key[q] === c);
       b.setAttribute('aria-label', `問${q+1} 正答${LAYOUT.labels[c]}`);
-      b.onclick = () => { s.key[q] = c; renderSettings(); autosave(); };
+      b.onclick = () => { s.key[q] = c; if (s.keyAlt[q] === c) s.keyAlt[q] = null; renderSettings(); autosave(); };
       row.appendChild(b);
     }
     const pt = document.createElement('input');
@@ -728,30 +805,60 @@ function renderSettings(){
   renderModelAnswers();
   updateKeyStatus();
 }
-/** 模範解答の文言（個人票に載せる）。入力中に描き直すとカーソルが飛ぶので、入力では描き直さない */
+/** 観点の選択肢（<option>）。名前が空の観点は出さない */
+function kantenOptions(sel){
+  return `<option value="-1">観点なし</option>` + state.settings.kanten.map((n, k) => n.trim()
+    ? `<option value="${k}" ${sel === k ? 'selected' : ''}>${escHtml(n)}</option>` : '').join('');
+}
+/** 模範解答の文言・観点・別解・全員正解。入力中に描き直すとカーソルが飛ぶので、文字入力では描き直さない */
 function renderModelAnswers(){
   const s = state.settings, grid = $('#keyTextGrid'); grid.innerHTML = '';
+  const names = $('#kantenNames'); names.innerHTML = '';
+  s.kanten.forEach((n, k) => {
+    const lb = document.createElement('label'); lb.className = 'f';
+    lb.innerHTML = `観点${k+1}の名前<input type="text" style="min-width:200px" placeholder="使わないなら空欄">`;
+    const inp = lb.querySelector('input'); inp.value = n;
+    inp.oninput = () => { s.kanten[k] = inp.value; autosave(); };
+    inp.onchange = () => renderModelAnswers();          // 入力を終えたら選択肢の名前を更新
+    names.appendChild(lb);
+  });
+  $('#kBulkSel').innerHTML = kantenOptions(0);
+  const sel = 'padding:3px 4px;border:1px solid var(--line);border-radius:6px;font-size:13px';
   for (let q = 0; q < s.nQ; q++){
     const row = document.createElement('div'); row.className = 'krow';
-    row.innerHTML = `<span class="qn">${q+1}</span><span class="kl">${s.key[q] === null ? '−' : LAYOUT.labels[s.key[q]]}</span><input type="text" class="kt" aria-label="問${q+1}の正答の文言" placeholder="正答の文言">`;
-    const inp = row.querySelector('input'); inp.value = s.keyText[q];
+    row.innerHTML = `<span class="qn">${q+1}</span><span class="kl">${s.key[q] === null ? '−' : LAYOUT.labels[s.key[q]]}</span>`
+      + `<input type="text" class="kt" aria-label="問${q+1}の正答の文言" placeholder="正答の文言">`
+      + `<select data-k aria-label="問${q+1}の観点" style="${sel};max-width:130px">${kantenOptions(s.qKanten[q])}</select>`
+      + `<select data-alt aria-label="問${q+1}の別解" style="${sel}" ${s.key[q] === null ? 'disabled' : ''}><option value="">別解なし</option>`
+      + LAYOUT.labels.slice(0, s.nC).map((l, c) => c === s.key[q] ? '' : `<option value="${c}" ${s.keyAlt[q] === c ? 'selected' : ''}>別解 ${l}</option>`).join('') + `</select>`
+      + `<label style="font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:2px"><input type="checkbox" data-all ${s.allOk[q] ? 'checked' : ''}>全員正解</label>`;
+    const inp = row.querySelector('input.kt'); inp.value = s.keyText[q];
     inp.oninput = () => { s.keyText[q] = inp.value; autosave(); };
+    row.querySelector('[data-k]').onchange = e => { s.qKanten[q] = +e.target.value; autosave(); };
+    row.querySelector('[data-alt]').onchange = e => { s.keyAlt[q] = e.target.value === '' ? null : +e.target.value; autosave(); };
+    row.querySelector('[data-all]').onchange = e => { s.allOk[q] = e.target.checked; updateKeyStatus(); autosave(); };
     grid.appendChild(row);
   }
   const box = $('#modelWritten'); box.innerHTML = '';
   s.written.forEach((w, j) => {
     const lb = document.createElement('label'); lb.className = 'f'; lb.style.marginTop = '8px';
-    lb.innerHTML = `<span></span><textarea class="model-input" rows="2" placeholder="模範解答・採点の観点など"></textarea>`;
-    lb.firstChild.textContent = `${w.label}（${w.points}点）の模範解答`;
+    lb.innerHTML = `<span class="row" style="gap:8px;align-items:center"><span></span><select style="${sel}" aria-label="観点">${kantenOptions(w.kanten)}</select></span><textarea class="model-input" rows="2" placeholder="模範解答・採点の観点など"></textarea>`;
+    lb.querySelector('span span').textContent = `${w.label}（${w.points}点）の模範解答`;
+    lb.querySelector('select').onchange = e => { w.kanten = +e.target.value; autosave(); };
     const ta = lb.querySelector('textarea'); ta.value = w.model;
     ta.oninput = () => { w.model = ta.value; autosave(); };
     box.appendChild(lb);
   });
 }
+$('#btnKBulk').onclick = () => {
+  const s = state.settings, a = Math.max(1, +$('#kBulkFrom').value || 1), b = Math.min(s.nQ, +$('#kBulkTo').value || s.nQ), k = +$('#kBulkSel').value;
+  for (let q = a - 1; q < b; q++) s.qKanten[q] = k;
+  renderModelAnswers(); autosave(); toast(`問${a}〜${b}の観点を設定しました`);
+};
 function updateKeyStatus(){
   const s = state.settings, f = fullScore();
   let unset = 0;
-  for (let q = 0; q < s.nQ; q++) if (s.key[q] === null) unset++;
+  for (let q = 0; q < s.nQ; q++) if (!isScored(q)) unset++;
   $('#keyStatus').textContent = (s.written.length ? `満点 ${f.total}点（マーク ${f.m}＋記述 ${f.w}）` : `満点 ${f.total}点`) + (unset ? `／正答が未設定の問題が ${unset}問あります` : '');
   $('#writtenStatus').textContent = `マーク式は最大 ${maxMarkQ()}問まで入ります`;
 }
@@ -908,6 +1015,13 @@ drop.addEventListener('drop', e => handleFiles([...e.dataTransfer.files]));
 $('#fileScan').onchange = e => { handleFiles([...e.target.files]); e.target.value = ''; };
 
 const TARGET_W = 1400;   // 解析する画像の横幅(px)。A4で約170dpi相当
+/** 白紙のページか。濃い点が全体の0.15%未満なら白紙とみなす
+    （解答用紙は四隅のマーカーだけで約0.3%あるので、用紙を白紙と間違えることはない。裏写り程度の薄さは数えない） */
+function isBlankPage(g){
+  let dark = 0;
+  for (let i = 0; i < g.length; i += 3) if (g[i] < 128) dark++;
+  return dark / (g.length / 3) < 0.0015;
+}
 let busy = false;
 async function handleFiles(files){
   if (busy) return; busy = true;
@@ -922,7 +1036,7 @@ async function handleFiles(files){
         for (let i = 1; i <= pdf.numPages; i++) pages.push({ name: `${f.name} ${i}ページ`, pdf, i });
       } else if (/^image\//.test(f.type)) pages.push({ name: f.name, file: f });
     }
-    let ok = 0, ng = 0;
+    let ok = 0, ng = 0, blank = 0;
     for (let k = 0; k < pages.length; k++){
       const p = pages[k], canvas = document.createElement('canvas');
       if (p.pdf){
@@ -939,7 +1053,11 @@ async function handleFiles(files){
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
       }
       const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-      const res = OMR.analyze(OMR.toGray(data.data, canvas.width, canvas.height), canvas.width, canvas.height);
+      const gray = OMR.toGray(data.data, canvas.width, canvas.height);
+      const res = OMR.analyze(gray, canvas.width, canvas.height);
+      if (res.error && isBlankPage(gray)){                 // 両面スキャンの裏面など、白紙のページは飛ばす
+        blank++; bar.style.width = ((k+1) / pages.length * 100) + '%'; continue;
+      }
       const uid = Date.now().toString(36) + k;
       images[uid] = canvas.toDataURL('image/jpeg', 0.7);
       state.results.push(Object.assign({ uid, source: p.name, manual: {}, manualId: null, written: [], layoutRows: perCol(), imgW: canvas.width, imgH: canvas.height }, res));
@@ -947,7 +1065,7 @@ async function handleFiles(files){
       bar.style.width = ((k+1) / pages.length * 100) + '%';
       await new Promise(r => setTimeout(r, 0));   // 画面を固まらせない
     }
-    log.insertAdjacentHTML('afterbegin', `<div><strong>${ok}枚を読み取りました</strong>${ng ? `（${ng}枚は読み取れず、結果画面で確認できます）` : ''}</div>`);
+    log.insertAdjacentHTML('afterbegin', `<div><strong>${ok}枚を読み取りました</strong>${ng ? `（${ng}枚は読み取れず、結果画面で確認できます）` : ''}${blank ? `　白紙のページ ${blank}枚は飛ばしました` : ''}</div>`);
     autosave();
   } catch (e) {
     log.insertAdjacentHTML('afterbegin', `<div class="err">読み込み中に問題が起きました：${escHtml(e.message)}</div>`);
@@ -983,7 +1101,8 @@ function renderResults(){
     + (s.written.length ? `<div><b style="color:${nTodo ? '#9A7200' : 'var(--ok)'}">${nTodo}</b><span>記述の未入力</span></div>` : '');
   if (!list.length){ $('#resultArea').innerHTML = '<div class="panel">まだ読み取った用紙がありません。「読み取り」でスキャンしたPDFを入れてください。</div>'; $('#detailArea').innerHTML = ''; return; }
 
-  let h = '<div class="tablewrap"><table class="res"><thead><tr><th>組</th><th>番号</th><th>得点</th><th class="l">確認</th>';
+  const hasName = state.roster.length > 0, base = hasName ? 5 : 4;
+  let h = `<div class="tablewrap"><table class="res"><thead><tr><th>組</th><th>番号</th>${hasName ? '<th class="l">氏名</th>' : ''}<th>得点</th><th class="l">確認</th>`;
   for (let q = 0; q < s.nQ; q++) h += `<th>${q+1}</th>`;
   s.written.forEach(w => h += `<th>${escHtml(w.label)}</th>`);
   h += '</tr></thead><tbody>';
@@ -991,27 +1110,27 @@ function renderResults(){
     const id = idOf(r), chk = needsCheck(r);
     h += `<tr data-uid="${r.uid}" class="${r.uid === selected ? 'sel' : ''}">`;
     if (r.error){
-      h += `<td class="c-chk">?</td><td class="c-chk">?</td><td>−</td><td class="l"><span class="badge">${r.error}</span></td><td colspan="${s.nQ + s.written.length}" class="l note">${escHtml(r.source)}</td></tr>`;
+      h += `<td class="c-chk">?</td><td class="c-chk">?</td>${hasName ? '<td></td>' : ''}<td>−</td><td class="l"><span class="badge">${r.error}</span></td><td colspan="${s.nQ + s.written.length}" class="l note">${escHtml(r.source)}</td></tr>`;
       return;
     }
     const idc = id.check || dup.has(r.uid) ? 'c-chk' : '';
-    h += `<td class="${idc}">${id.kumi}</td><td class="${idc}">${id.ban}</td><td class="score">${scoreOf(r)}</td><td class="l">${chk ? `<span class="badge">${dup.has(r.uid) ? '番号重複' : '要確認'}</span>` : ''}</td>`;
+    h += `<td class="${idc}">${id.kumi}</td><td class="${idc}">${id.ban}</td>${hasName ? `<td class="l">${escHtml(nameOf(r))}</td>` : ''}<td class="score">${scoreOf(r)}</td><td class="l">${chk ? `<span class="badge">${dup.has(r.uid) ? '番号重複' : '要確認'}</span>` : ''}</td>`;
     for (let q = 0; q < s.nQ; q++){
       const a = answerOf(r, q);
-      const cls = a.check ? 'c-chk' : (s.key[q] !== null && a.value === s.key[q]) ? 'c-ok' : 'c-ng';
+      const cls = a.check ? 'c-chk' : !isScored(q) ? '' : isCorrect(q, a.value) ? 'c-ok' : 'c-ng';
       h += `<td class="${cls}">${ansLabel(a.value)}</td>`;
     }
     s.written.forEach((w, j) => { const v = writtenOf(r, j); h += v === '' ? '<td class="note">未</td>' : `<td>${v}</td>`; });
     h += '</tr>';
   });
-  // 設問ごとの正答率
-  h += `<tr class="rate"><td colspan="4" class="l">正答</td>`;
-  for (let q = 0; q < s.nQ; q++) h += `<td>${s.key[q] === null ? '未' : LAYOUT.labels[s.key[q]]}</td>`;
+  // 設問ごとの正答率（正答の行：「全」は全員正解、「ア・イ」は別解あり）
+  h += `<tr class="rate"><td colspan="${base}" class="l">正答</td>`;
+  for (let q = 0; q < s.nQ; q++) h += `<td>${s.allOk[q] ? '全' : s.key[q] === null ? '未' : keyLabel(q)}</td>`;
   s.written.forEach(w => h += `<td>／${w.points}</td>`);
-  h += `</tr><tr class="rate"><td colspan="4" class="l">正答率（記述は平均点）</td>`;
+  h += `</tr><tr class="rate"><td colspan="${base}" class="l">正答率（記述は平均点）</td>`;
   for (let q = 0; q < s.nQ; q++){
-    const c = valid.filter(r => s.key[q] !== null && answerOf(r, q).value === s.key[q]).length;
-    h += `<td>${valid.length && s.key[q] !== null ? Math.round(c / valid.length * 100) + '%' : '−'}</td>`;
+    const c = valid.filter(r => isCorrect(q, answerOf(r, q).value)).length;
+    h += `<td>${valid.length && isScored(q) ? Math.round(c / valid.length * 100) + '%' : '−'}</td>`;
   }
   s.written.forEach((w, j) => {
     const vs = valid.map(r => writtenOf(r, j)).filter(v => v !== '');
@@ -1038,6 +1157,7 @@ function renderDetail(){
     h += `<div class="row" style="margin-bottom:12px">
         <label class="f">組<input type="number" id="edKumi" min="0" max="9" value="${id.kumi}" style="min-width:70px"></label>
         <label class="f">番号<input type="number" id="edBan" min="0" max="99" value="${id.ban}" style="min-width:70px"></label>
+        ${state.roster.length ? `<span style="align-self:center">${escHtml(nameOf(r)) || '<span class="note">名簿にない番号</span>'}</span>` : ''}
         <span style="font-size:20px;font-weight:700;margin-left:auto">${scoreOf(r)}点</span></div>
       <div class="edit-list">`;
     for (let q = 0; q < s.nQ; q++){
@@ -1046,6 +1166,7 @@ function renderDetail(){
         <option value="-1" ${a.value === -1 ? 'selected' : ''}>無回答</option>
         <option value="-2" ${a.value === -2 ? 'selected' : ''}>複数</option>`;
       for (let c = 0; c < s.nC; c++) h += `<option value="${c}" ${a.value === c ? 'selected' : ''}>${LAYOUT.labels[c]}</option>`;
+      if (a.manual) h += `<option value="auto">自動判定に戻す</option>`;
       h += `</select>${a.manual ? '<small class="note">修正済</small>' : ''}</label>`;
     }
     h += `</div>`;
@@ -1054,8 +1175,10 @@ function renderDetail(){
       s.written.forEach((w, j) => h += `<label><span style="width:auto">${escHtml(w.label)}</span><input type="number" min="0" max="${w.points}" data-w="${j}" value="${writtenOf(r, j)}" style="width:60px;padding:2px 4px;border:1px solid var(--line);border-radius:5px">／${w.points}</label>`);
       h += `</div>`;
     }
-    h += `<p class="note">値を選び直すと、その問題は確認済みになります。</p>
-      <button class="btn small" id="btnOkAll">この用紙の黄色をすべて確認済みにする</button>`;
+    const edited = r.manualId || Object.keys(r.manual || {}).length;
+    h += `<p class="note">値を選び直すと、その問題は確認済みになります。「自動判定に戻す」で機械の判定に戻せます。</p>
+      <div class="row" style="gap:8px"><button class="btn small" id="btnOkAll">この用紙の黄色をすべて確認済みにする</button>
+      ${edited ? '<button class="btn small" id="btnUndoAll">この用紙の手修正をすべて取り消す</button>' : ''}</div>`;
   }
   area.innerHTML = h + `</div></div>`;
 
@@ -1066,7 +1189,14 @@ function renderDetail(){
   if (!r.error){
     const setId = () => { r.manualId = { kumi: $('#edKumi').value === '' ? '' : +$('#edKumi').value, ban: $('#edBan').value === '' ? '' : +$('#edBan').value }; autosave(); renderResults(); };
     $('#edKumi').onchange = setId; $('#edBan').onchange = setId;
-    area.querySelectorAll('select[data-q]').forEach(sel => sel.onchange = () => { r.manual[sel.dataset.q] = +sel.value; autosave(); renderResults(); });
+    area.querySelectorAll('select[data-q]').forEach(sel => sel.onchange = () => {
+      if (sel.value === 'auto') delete r.manual[sel.dataset.q]; else r.manual[sel.dataset.q] = +sel.value;
+      autosave(); renderResults();
+    });
+    if ($('#btnUndoAll')) $('#btnUndoAll').onclick = () => {
+      if (!confirm('この用紙で手で直した解答・組・番号を、すべて機械の判定に戻しますか？（記述の点数はそのまま）')) return;
+      r.manual = {}; r.manualId = null; autosave(); renderResults();
+    };
     area.querySelectorAll('input[data-w]').forEach(inp => inp.onchange = () => { setWritten(r, +inp.dataset.w, inp.value); renderResults(); });
     $('#btnOkAll').onclick = () => {
       for (let q = 0; q < s.nQ; q++){ const a = answerOf(r, q); if (a.check) r.manual[q] = a.value; }
@@ -1114,7 +1244,7 @@ function renderWritten(){
   list.forEach(r => {
     const id = idOf(r), v = writtenOf(r, wIndex);
     const canCrop = images[r.uid] && r.H && !layoutMismatch(r);
-    h += `<div class="wcard ${v === '' ? 'todo' : ''}"><div class="wcard-h"><strong>${id.kumi}組 ${id.ban}番</strong>
+    h += `<div class="wcard ${v === '' ? 'todo' : ''}"><div class="wcard-h"><strong>${id.kumi}組 ${id.ban}番 ${escHtml(nameOf(r))}</strong>
       <span><input type="number" min="0" max="${w.points}" value="${v}" data-uid="${r.uid}" aria-label="${id.kumi}組${id.ban}番の得点"> ／${w.points}点</span></div>`
       + (canCrop ? `<canvas data-crop="${r.uid}"></canvas>` : `<p class="note" style="margin:6px 0 0">画像がありません。元の用紙を見て入力してください。</p>`) + `</div>`;
   });
@@ -1155,6 +1285,41 @@ function drawCrop(cv, r, j){
   img.src = images[r.uid];
   });
 }
+/* ---- 名簿（氏名）：組・番号・氏名の3列のCSV。Excelで保存した Shift_JIS でも UTF-8 でも読める ---- */
+async function readTextAuto(file){
+  const buf = await file.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf).replace(/^﻿/, ''); }
+  catch (e) { return new TextDecoder('shift_jis').decode(buf); }
+}
+/** 1行ずつ「組, 番号, 氏名」を読む。数字でない行（見出し行など）は飛ばす。全角数字も可 */
+function parseRoster(text){
+  const out = [];
+  text.split(/\r?\n/).forEach(line => {
+    const c = line.split(/[,\t]/).map(v => v.replace(/^"|"$/g, '').trim().normalize('NFKC'));
+    const kumi = parseInt(c[0], 10), ban = parseInt(c[1], 10), name = (c[2] || '').trim();
+    if (/^\d+$/.test(c[0] || '') && /^\d+$/.test(c[1] || '') && name) out.push({ kumi, ban, name });
+  });
+  return out;
+}
+function updateRosterState(){
+  const n = state.roster.length;
+  $('#rosterState').textContent = n ? `名簿：${n}人（個人票・一覧・CSVに氏名が入ります）` : '名簿を読み込むと、個人票・一覧・CSVに氏名が入ります（組・番号・氏名の3列のCSV）';
+  $('#btnRosterClear').hidden = !n;
+}
+$('#fileRoster').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const list = parseRoster(await readTextAuto(f));
+  if (!list.length){ alert('名簿を読み取れませんでした。1列目に組、2列目に番号、3列目に氏名が入ったCSVにしてください。'); return; }
+  if (state.roster.length && !confirm(`今の名簿（${state.roster.length}人）を、読み込んだ名簿（${list.length}人）に置き換えます。よろしいですか？`)) return;
+  state.roster = list; autosave(); updateRosterState(); renderResults();
+  const missing = state.results.filter(r => !r.error && !nameOf(r)).length;
+  toast(`名簿を読み込みました（${list.length}人）` + (missing ? `。名簿にない組・番号が${missing}件あります` : ''));
+};
+$('#btnRosterClear').onclick = () => {
+  if (!confirm('名簿（氏名）を消しますか？ 採点結果は消えません。')) return;
+  state.roster = []; autosave(); updateRosterState(); renderResults();
+};
+
 $('#btnNextCheck').onclick = () => {
   const list = sortedResults(), i = list.findIndex(r => r.uid === selected);
   const next = list.slice(i + 1).concat(list.slice(0, i + 1)).find(needsCheck);
@@ -1170,20 +1335,23 @@ $('#btnCsv').onclick = () => {
   const s = state.settings, list = sortedResults().filter(r => !r.error);
   if (!list.length){ toast('出力する結果がありません'); return; }
   const q = [...Array(s.nQ).keys()];
-  const W = s.written, hasW = W.length > 0;
-  const head = hasW ? ['組', '番号', '得点', 'マーク計', '記述計'] : ['組', '番号', '得点'];
+  const W = s.written, hasW = W.length > 0, hasName = state.roster.length > 0, K = activeKanten();
+  const head = ['組', '番号', ...(hasName ? ['氏名'] : []), '得点', ...(hasW ? ['マーク計', '記述計'] : []), ...K.map(k => k.name)];
   const pad = label => [...Array(head.length - 1).fill(''), label];
   const rows = [[...head, ...q.map(i => '問' + (i+1)), ...W.map(w => w.label), '要確認']];
   list.forEach(r => {
     const id = idOf(r);
-    rows.push([id.kumi, id.ban, scoreOf(r), ...(hasW ? [markScoreOf(r), writtenScoreOf(r)] : []),
+    rows.push([id.kumi, id.ban, ...(hasName ? [nameOf(r)] : []), scoreOf(r), ...(hasW ? [markScoreOf(r), writtenScoreOf(r)] : []),
+      ...kantenScoresOf(r).map(k => k.score),
       ...q.map(i => ansLabel(answerOf(r, i).value)), ...W.map((w, j) => writtenOf(r, j)),
       [needsCheck(r) ? '要確認' : '', W.some((w, j) => writtenOf(r, j) === '') ? '記述未入力' : ''].filter(Boolean).join('・')]);
   });
   rows.push([]);
-  rows.push([...pad('正答'), ...q.map(i => s.key[i] === null ? '' : LAYOUT.labels[s.key[i]]), ...W.map(() => '')]);
+  rows.push([...pad('正答'), ...q.map(i => s.allOk[i] ? '全員正解' : s.key[i] === null ? '' : keyLabel(i)), ...W.map(() => '')]);
+  if (s.keyText.slice(0, s.nQ).some(t => t.trim())) rows.push([...pad('正答の文言'), ...q.map(i => s.keyText[i]), ...W.map(w => w.model)]);
   rows.push([...pad('配点'), ...q.map(i => s.points[i]), ...W.map(w => w.points)]);
-  rows.push([...pad('正答率(%)・記述は平均点'), ...q.map(i => s.key[i] === null ? '' : Math.round(list.filter(r => answerOf(r, i).value === s.key[i]).length / list.length * 100)),
+  if (K.length) rows.push([...pad('観点'), ...q.map(i => s.kanten[s.qKanten[i]] || ''), ...W.map(w => s.kanten[w.kanten] || '')]);
+  rows.push([...pad('正答率(%)・記述は平均点'), ...q.map(i => !isScored(i) ? '' : Math.round(list.filter(r => isCorrect(i, answerOf(r, i).value)).length / list.length * 100)),
     ...W.map((w, j) => { const vs = list.map(r => writtenOf(r, j)).filter(v => v !== ''); return vs.length ? (vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(1) : ''; })]);
   const csv = '\uFEFF' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
   downloadFile(fileStem() + '_採点結果.csv', csv, 'text/csv');
@@ -1225,20 +1393,23 @@ async function slipsHTML(list){
   let out = '';
   for (const r of list){
     const id = idOf(r);
-    let h = `<div class="rp"><div class="rp-head"><h1>${escHtml(s.testName || 'テスト')}　結果</h1><div class="rp-id">${idText(id)}　氏名 <u></u></div></div>`;
+    const name = nameOf(r);
+    let h = `<div class="rp"><div class="rp-head"><h1>${escHtml(s.testName || 'テスト')}　結果</h1><div class="rp-id">${idText(id)}　氏名 <u>${escHtml(name)}</u></div></div>`;
     h += `<div class="rp-score"><div class="big">得点<b>${scoreOf(r)}</b>点 ／ ${f.total}点</div>`
       + (s.written.length ? `<span>マーク式 ${markScoreOf(r)}／${f.m}点　記述式 ${writtenScoreOf(r)}／${f.w}点</span>` : '')
       + `<span>平均点 ${fmt1(st.avg)}点（${st.n}人）</span></div>`;
+    const ks = kantenScoresOf(r);
+    if (ks.length) h += `<div class="rp-score" style="margin-top:0">` + ks.map(k => `<span><b>${escHtml(k.name)}</b> ${k.score}／${k.full}点</span>`).join('') + '</div>';
     if (s.nQ){
       h += `<h2>マーク式</h2><div class="rp-cols" style="grid-template-columns:repeat(${cols},1fr)">`;
       for (let c = 0; c < cols; c++){
         h += `<table${small}><thead><tr><th>問</th><th>あなたの解答</th><th>正答</th>${hasText ? '<th class="l">正答の内容</th>' : ''}<th>得点</th></tr></thead><tbody>`;
         for (let q = c * per; q < Math.min(s.nQ, (c+1) * per); q++){
-          const a = answerOf(r, q).value, k = s.key[q], ok = k !== null && a === k, pt = +s.points[q] || 0;
-          h += `<tr class="${k !== null && !ok ? 'hl' : ''}"><td>${q+1}</td>`
-            + `<td class="${k === null ? '' : ok ? 'ok' : 'ng'}">${slipLabel(a)}${k === null ? '' : ok ? '　○' : '　×'}</td>`
-            + `<td>${k === null ? '−' : LAYOUT.labels[k]}</td>${hasText ? `<td class="l">${escHtml(s.keyText[q])}</td>` : ''}`
-            + `<td>${k === null ? '−' : (ok ? pt : 0)}／${pt}</td></tr>`;
+          const a = answerOf(r, q).value, sc = isScored(q), ok = isCorrect(q, a), pt = +s.points[q] || 0;
+          h += `<tr class="${sc && !ok ? 'hl' : ''}"><td>${q+1}</td>`
+            + `<td class="${!sc ? '' : ok ? 'ok' : 'ng'}">${slipLabel(a)}${!sc ? '' : ok ? '　○' : '　×'}</td>`
+            + `<td>${keyLabel(q)}</td>${hasText ? `<td class="l">${escHtml(s.keyText[q])}</td>` : ''}`
+            + `<td>${!sc ? '−' : (ok ? pt : 0)}／${pt}</td></tr>`;
         }
         h += '</tbody></table>';
       }
@@ -1291,6 +1462,16 @@ function reportHTML(list){
       h += `<tr><td>${k === '' ? '不明' : k + '組'}</td><td>${g.n}</td><td>${fmt1(g.avg)}</td><td>${g.max}</td><td>${g.min}</td><td>${fmt1(g.sd)}</td></tr>`; });
     h += '</tbody></table>';
   }
+  const K = activeKanten();
+  if (K.length){
+    h += `<h2>観点別</h2><table><thead><tr><th class="l">観点</th><th>満点</th><th>平均点</th><th class="l" style="width:40%">平均得点率</th><th>最高点</th><th>最低点</th></tr></thead><tbody>`;
+    K.forEach((k, i) => {
+      const v = list.map(r => kantenScoresOf(r)[i]), full = v.length ? v[0].full : 0, sc = v.map(x => x.score);
+      const avg = sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : 0;
+      h += `<tr><td class="l">${escHtml(k.name)}</td><td>${full}</td><td>${fmt1(avg)}</td><td class="l">${bar(pct(avg, full) * 0.8, 'g')} ${pct(avg, full)}%</td><td>${sc.length ? Math.max(...sc) : '−'}</td><td>${sc.length ? Math.min(...sc) : '−'}</td></tr>`;
+    });
+    h += '</tbody></table>';
+  }
   if (s.written.length){
     h += `<h2>記述式</h2><table><thead><tr><th class="l">問題</th><th>配点</th><th>平均点</th><th>得点率</th><th>満点の人数</th><th>0点の人数</th><th>未採点</th></tr></thead><tbody>`;
     s.written.forEach((w, j) => {
@@ -1305,30 +1486,34 @@ function reportHTML(list){
   // 2ページ目：設問ごとの分析（選択肢ごとの割合。正答の欄は緑、正答率50%未満の行は色付き）
   if (s.nQ){
     h += `<div class="rp"><div class="rp-head"><h1>${title}　設問ごとの分析</h1><span>${st.n}人</span></div>
-      <p class="foot" style="margin:2mm 0">数字は各選択肢を選んだ人の割合（%）。緑が正答、色のついた行は正答率50%未満の問題です。</p>
-      <table style="font-size:${s.nC > 6 ? 8.5 : 9.5}pt"><thead><tr><th>問</th><th>正答</th><th>配点</th><th class="l">正答率</th>`;
+      <p class="foot" style="margin:2mm 0">数字は各選択肢を選んだ人の割合（%）。緑が正答（別解を含む）、色のついた行は正答率50%未満の問題です。「全員正解」にした問題は正答率100%になります。</p>
+      <table style="font-size:${s.nC > 6 ? 8.5 : 9.5}pt"><thead><tr><th>問</th><th>正答</th><th>配点</th>${K.length ? '<th>観点</th>' : ''}<th class="l">正答率</th>`;
     for (let c = 0; c < s.nC; c++) h += `<th>${LAYOUT.labels[c]}</th>`;
     h += '<th>無回答</th><th>複数</th></tr></thead><tbody>';
     for (let q = 0; q < s.nQ; q++){
-      const k = s.key[q], cnt = Array(s.nC).fill(0); let none = 0, multi = 0;
+      const cnt = Array(s.nC).fill(0); let none = 0, multi = 0;
       list.forEach(r => { const v = answerOf(r, q).value; if (v === -1) none++; else if (v === -2) multi++; else if (v < s.nC) cnt[v]++; });
-      const rate = k === null ? null : pct(cnt[k], n);
-      h += `<tr class="${rate !== null && rate < 50 ? 'hl' : ''}"><td>${q+1}</td><td>${k === null ? '−' : LAYOUT.labels[k]}</td><td>${s.points[q]}</td>`
+      const rate = isScored(q) ? pct(list.filter(r => isCorrect(q, answerOf(r, q).value)).length, n) : null;
+      const isKey = c => !s.allOk[q] && (c === s.key[q] || c === s.keyAlt[q]);
+      h += `<tr class="${rate !== null && rate < 50 ? 'hl' : ''}"><td>${q+1}</td><td>${keyLabel(q)}</td><td>${s.points[q]}</td>`
+        + (K.length ? `<td style="font-size:8pt">${escHtml(s.kanten[s.qKanten[q]] || '')}</td>` : '')
         + `<td class="l" style="white-space:nowrap">${rate === null ? '−' : `${bar(rate * 0.6, 'g')} ${rate}%`}</td>`
-        + cnt.map((v, c) => `<td class="${c === k ? 'cor' : ''}">${pct(v, n)}</td>`).join('')
+        + cnt.map((v, c) => `<td class="${isKey(c) ? 'cor' : ''}">${pct(v, n)}</td>`).join('')
         + `<td>${pct(none, n)}</td><td>${pct(multi, n)}</td></tr>`;
     }
     h += '</tbody></table></div>';
   }
 
   // 3ページ目以降：名簿（組・番号順。順位は同点なら同じ順位）
-  const hasW = s.written.length > 0;
+  const hasW = s.written.length > 0, hasName = state.roster.length > 0;
   h += `<div class="rp"><div class="rp-head"><h1>${title}　名簿</h1><span>満点 ${f.total}点</span></div>
-    <table style="margin-top:3mm"><thead><tr><th>組</th><th>番号</th><th>得点</th>${hasW ? '<th>マーク式</th><th>記述式</th>' : ''}<th>得点率</th><th>順位</th><th class="l">備考</th></tr></thead><tbody>`;
+    <table style="margin-top:3mm"><thead><tr><th>組</th><th>番号</th>${hasName ? '<th class="l">氏名</th>' : ''}<th>得点</th>${hasW ? '<th>マーク式</th><th>記述式</th>' : ''}`
+    + K.map(k => `<th style="font-size:8.5pt">${escHtml(k.name)}</th>`).join('') + `<th>得点率</th><th>順位</th><th class="l">備考</th></tr></thead><tbody>`;
   list.forEach(r => {
     const id = idOf(r), sc = scoreOf(r), rank = st.sc.filter(v => v > sc).length + 1;
     const memo = [needsCheck(r) ? '要確認' : '', s.written.some((w, j) => writtenOf(r, j) === '') ? '記述未採点' : ''].filter(Boolean).join('・');
-    h += `<tr><td>${id.kumi}</td><td>${id.ban}</td><td><b>${sc}</b></td>${hasW ? `<td>${markScoreOf(r)}</td><td>${writtenScoreOf(r)}</td>` : ''}<td>${pct(sc, f.total)}%</td><td>${rank}</td><td class="l">${memo}</td></tr>`;
+    h += `<tr><td>${id.kumi}</td><td>${id.ban}</td>${hasName ? `<td class="l">${escHtml(nameOf(r))}</td>` : ''}<td><b>${sc}</b></td>${hasW ? `<td>${markScoreOf(r)}</td><td>${writtenScoreOf(r)}</td>` : ''}`
+      + kantenScoresOf(r).map(k => `<td>${k.score}</td>`).join('') + `<td>${pct(sc, f.total)}%</td><td>${rank}</td><td class="l">${memo}</td></tr>`;
   });
   return h + '</tbody></table></div>';
 }
@@ -1346,7 +1531,7 @@ $('#btnReport').onclick = () => {
 
 $('#btnBackup').onclick = () => {
   const data = { app: 'marksheet-saiten', version: 1, savedAt: new Date().toISOString(), settings: state.settings,
-    results: state.results.map(r => Object.assign({}, r)) };
+    results: state.results.map(r => Object.assign({}, r)), roster: state.roster };   // roster は v1.6 から
   downloadFile(fileStem() + '_バックアップ.json', JSON.stringify(data), 'application/json');
   toast('バックアップを保存しました');
 };
@@ -1357,7 +1542,8 @@ $('#fileBackup').onchange = async e => {
     if (d.app !== 'marksheet-saiten') throw new Error('このアプリのバックアップファイルではありません');
     if (state.results.length && !confirm('今の内容をバックアップの内容に置き換えます。よろしいですか？')) return;
     state.settings = Object.assign({ testName: '', note: '', nQ: 20, nC: 4, key: [], keyText: [], points: [], threshold: 0.35, written: [], writtenSize: 3 }, d.settings);
-    state.results = d.results || []; normalizeSettings(); selected = null;
+    state.results = d.results || []; if (Array.isArray(d.roster) && d.roster.length) state.roster = d.roster;   // 名簿の無い古いバックアップなら今の名簿を残す
+    normalizeSettings(); selected = null; updateRosterState();
     initInputs(); renderSettings(); autosave(); showStep(1);
     toast('バックアップを開きました');
   } catch (err) { alert('開けませんでした：' + err.message); }
@@ -1442,7 +1628,7 @@ $('#btnSelfTest').onclick = () => {
 };
 
 /* ---- 起動 ---- */
-function initInputs(){ document.querySelectorAll('.note-input').forEach(el => el.value = state.settings.note || ''); updateNoteCount(); $('#th').value = state.settings.threshold; $('#thVal').textContent = '現在 ' + Math.round(state.settings.threshold*100); }
+function initInputs(){ document.querySelectorAll('.note-input').forEach(el => el.value = state.settings.note || ''); updateNoteCount(); updateRosterState(); $('#th').value = state.settings.threshold; $('#thVal').textContent = '現在 ' + Math.round(state.settings.threshold*100); }
 restore(); initInputs(); renderSettings();
 </script>
 </body>
