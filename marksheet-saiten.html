@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.8
+ マークシート採点アプリ  ver 1.9
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -23,6 +23,7 @@
  【よくある修正】
    ・読み取りが甘い／厳しい → 画面の「読み取りの感度」で調整
    ・LAYOUT や OMR を直したら → 「使い方・引き継ぎ」の「自己診断を実行」で確認
+   ・画面の部品を変えたら → 画面ガイド（TOUR）の説明と対象も直す
    ・設問数・選択肢の上限を変えたい → LAYOUT を変更
      （印刷位置と読み取り位置が同時に変わるので、必ず印刷し直す）
 ============================================================
@@ -156,6 +157,18 @@ textarea.note-input,textarea.model-input{padding:8px 10px;border:1px solid var(-
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.show{opacity:1}
 
+/* チュートリアル（画面ガイド）と練習モード */
+.tour-hole{position:fixed;z-index:50;border-radius:10px;box-shadow:0 0 0 9999px rgba(20,25,35,.55);outline:3px solid #FFD54A;transition:all .2s;pointer-events:none}
+.tour-card{position:fixed;z-index:51;width:min(380px,calc(100vw - 32px));background:var(--surface);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:16px 18px}
+.tour-card h3{margin:0 0 6px;font-size:17px}
+.tour-card p{margin:0 0 12px;font-size:14.5px}
+.tour-card .tour-foot{display:flex;align-items:center;gap:8px}
+.tour-card .tour-foot .note{margin-right:auto}
+.tour-block{position:fixed;inset:0;z-index:49}
+#practiceBar{background:#2F6FD6;color:#fff;font-size:14px}
+#practiceBar .bar{padding:8px 20px}
+#practiceBar .btn{color:var(--ink)}
+
 details.panel summary{cursor:pointer}
 .krow .kl{width:24px;text-align:center;font-weight:700;color:var(--rose)}
 #keyTextGrid .krow{flex-wrap:wrap}
@@ -167,7 +180,7 @@ details.panel summary{cursor:pointer}
   @page{size:A4 portrait;margin:0}
   @page report{size:A4 portrait;margin:12mm 12mm 10mm}
   body{background:#fff}
-  header.app,main,.toast{display:none!important}
+  header.app,main,.toast,#practiceBar,.tour-hole,.tour-card,.tour-block{display:none!important}
   #printArea{display:block}
   #printArea > svg{width:210mm;height:297mm;display:block}
 }
@@ -213,6 +226,7 @@ details.panel summary{cursor:pointer}
     <div class="logo"><i aria-hidden="true"></i>マークシート採点</div>
     <span class="save-state" id="saveState"></span>
     <span class="spacer"></span>
+    <button class="btn small" id="btnTour" title="画面の使い方を順番に案内します">はじめての方へ</button>
     <button class="btn small" id="btnBackup" title="設定と採点結果をファイルに保存します">バックアップを保存</button>
     <label class="btn small" title="保存したバックアップファイルを開きます">バックアップを開く<input type="file" id="fileBackup" accept=".json" hidden></label>
   </div>
@@ -223,6 +237,7 @@ details.panel summary{cursor:pointer}
     <button role="tab" data-step="4"><b>4</b>結果の確認と出力</button>
     <button role="tab" data-step="help" class="help">使い方・引き継ぎ</button>
   </nav>
+  <div id="practiceBar" hidden><div class="bar"><strong>練習中</strong><span>サンプルの用紙で試しています。ここでの操作は保存されず、今までのデータはそのまま残っています。</span><span class="spacer"></span><button class="btn small" id="btnPracticeEnd">練習を終えて元に戻す</button></div></div>
 </header>
 
 <main>
@@ -313,6 +328,7 @@ details.panel summary{cursor:pointer}
       <p><strong>ここにPDFをドラッグ</strong>するか、</p>
       <p><label class="btn main">ファイルを選ぶ<input type="file" id="fileScan" accept=".pdf,image/png,image/jpeg" multiple hidden></label></p>
       <p class="note">PDF・JPG・PNGに対応。スキャンは白黒またはグレー、200dpi程度がおすすめです。</p>
+      <p id="practiceScan" hidden><button class="btn main" id="btnPracticeScan">練習用：サンプルの用紙（6枚）を読み取る</button></p>
     </div>
     <div id="pdfWarn"></div>
     <div class="progress" id="prog" hidden><i></i></div>
@@ -361,6 +377,9 @@ details.panel summary{cursor:pointer}
   <section class="step" id="stepHelp">
     <div class="help-body">
       <h2>使い方・引き継ぎ</h2>
+      <h3>はじめての方へ</h3>
+      <p>初めて使う方は、まず<strong>画面ガイド</strong>で各画面の役割を確認し、<strong>サンプルで練習</strong>で一通り操作してみてください。練習では、アプリが作ったサンプルの解答用紙（6人分）を使うので、印刷もスキャンも要りません。練習中の操作は保存されず、今までのデータもそのまま残ります。</p>
+      <p class="row" style="gap:8px"><button class="btn main" id="btnTour2">画面ガイドを見る</button><button class="btn" id="btnPractice2">サンプルで練習する</button></p>
       <h3>基本の流れ</h3>
       <ol>
         <li>「正答と配点」で学年・設問数・選択肢・正答・配点を入れる（学年は解答用紙に印字されます）。</li>
@@ -401,7 +420,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -634,7 +653,9 @@ function normalizeSettings(){
   if (!Array.isArray(state.roster)) state.roster = [];
 }
 let saveTimer = null;
+let practiceSnapshot = null;   // 練習モード中は、練習前の状態（JSON文字列）が入る。練習中は自動保存しない
 function autosave(){
+  if (practiceSnapshot) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
@@ -1061,11 +1082,12 @@ function isBlankPage(g){
   return dark / (g.length / 3) < 0.0015;
 }
 let busy = false;
-async function handleFiles(files){
+/** files：選んだPDF・画像。madePages：アプリが作るページ [{ name, make: async () => canvas }]（練習モード用） */
+async function handleFiles(files, madePages = []){
   if (busy) return; busy = true;
   const log = $('#scanLog'), prog = $('#prog'), bar = prog.querySelector('i');
   log.innerHTML = ''; prog.hidden = false; bar.style.width = '0';
-  const pages = [];
+  const pages = [...madePages];
   try {
     for (const f of files){
       if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)){
@@ -1076,8 +1098,9 @@ async function handleFiles(files){
     }
     let ok = 0, ng = 0, blank = 0;
     for (let k = 0; k < pages.length; k++){
-      const p = pages[k], canvas = document.createElement('canvas');
-      if (p.pdf){
+      const p = pages[k]; let canvas = document.createElement('canvas');
+      if (p.make) canvas = await p.make();                  // 練習モードのサンプル用紙（アプリがその場で作る）
+      else if (p.pdf){
         const page = await p.pdf.getPage(p.i);
         const vp1 = page.getViewport({ scale: 1 });
         const vp = page.getViewport({ scale: TARGET_W / vp1.width });
@@ -1577,6 +1600,7 @@ $('#btnBackup').onclick = () => {
 };
 $('#fileBackup').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  if (practiceSnapshot){ toast('練習中はバックアップを開けません。先に「練習を終えて元に戻す」を押してください'); return; }
   try {
     const d = JSON.parse(await f.text());
     if (d.app !== 'marksheet-saiten') throw new Error('このアプリのバックアップファイルではありません');
@@ -1667,9 +1691,205 @@ $('#btnSelfTest').onclick = () => {
   setTimeout(() => { const r = runSelfTest(); $('#selfTestOut').textContent = r.text; $('#selfTestOut').style.color = r.ok ? 'var(--ok)' : 'var(--rose)'; }, 30);
 };
 
+/* ---- 練習モード：サンプルのテストと解答用紙（6人分）をアプリの中で作り、一通り操作してもらう ----
+   練習前の状態を practiceSnapshot に取っておき、練習中は自動保存しない（autosave 参照）。
+   「練習を終えて元に戻す」で practiceSnapshot から元に戻す。ページを閉じても元のデータは残っている。 */
+const PRACTICE_KEY = [0, 2, 1, 3, 2, 0, 3, 1, 1, 2, 3, 0, 2, 1, 0, 3, 1, 2, 0, 3];
+const PRACTICE_STUDENTS = [   // a：問ごとの解答（-1 無回答、-2 複数マーク、-3 薄い塗り）を正答からずらして作る
+  { kumi: 1, ban: 1,  name: '青木 さくら', skill: 0.95, rot:  0.4,   w: '根から吸った水が、葉の気孔から水蒸気として出ていくこと。' },
+  { kumi: 1, ban: 2,  name: '石井 はると', skill: 0.75, rot: -0.6,   w: '葉から水が出ていく。', special: { 5: -2 } },
+  { kumi: 1, ban: 3,  name: '上田 ゆい',   skill: 0.85, rot:  0.8,   w: '水が気孔から水蒸気になって出る。', special: { 8: -3 } },
+  { kumi: 1, ban: 4,  name: '江口 そうた', skill: 0.5,  rot: -0.3,   w: '光合成をすること。' },
+  { kumi: 1, ban: 5,  name: '小川 めい',   skill: 0.65, rot:  0.5,   w: '', special: { 12: -1, 13: -1 } },
+  { kumi: 1, ban: 6,  name: '加藤 りく',   skill: 0.9,  rot: 180.3,  w: '植物の体から水が水蒸気として出ていく現象。' },   // 逆さにスキャンした例
+];
+function practiceSettings(){
+  const key = [], points = [], keyText = [], qKanten = [];
+  const texts = ['光合成', '蒸散', '道管', '師管', '気孔', '葉緑体', '二酸化炭素', '酸素', 'デンプン', '水'];
+  for (let q = 0; q < 20; q++){ key[q] = PRACTICE_KEY[q]; points[q] = q < 10 ? 4 : 5; keyText[q] = q < 10 ? texts[q] : ''; qKanten[q] = q < 10 ? 0 : 1; }
+  return { testName: 'サンプル 理科（練習用）', grade: 1, note: '練習用のサンプルです。問題用紙の番号に合わせてマークすること。', nQ: 20, nC: 4,
+    key, keyText, points, qKanten, kanten: ['知識・技能', '思考・判断・表現', ''], threshold: 0.35, showInfo: true, writtenSize: 3,
+    written: [{ label: '記述1　蒸散とは何か', points: 10, model: '根から吸い上げた水が、葉の気孔から水蒸気として出ていくこと。', kanten: 1 }] };
+}
+/** 生徒1人分のサンプル用紙を、本物の解答用紙（sheetSVG）に鉛筆の塗りと手書き風の文字を重ねて作る */
+async function makePracticeSheet(st, idx){
+  const S = 8, P = LAYOUT.page, s = state.settings;
+  const img = new Image();
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sheetSVG()); });
+  const src = document.createElement('canvas'); src.width = P.w * S; src.height = P.h * S;
+  const d = src.getContext('2d');
+  d.fillStyle = '#fff'; d.fillRect(0, 0, src.width, src.height); d.drawImage(img, 0, 0, src.width, src.height);
+  const mark = ([x, y], color = 'rgb(55,55,60)') => { d.beginPath(); d.ellipse(x*S, y*S, 2.2*S, 1.45*S, 0, 0, Math.PI*2); d.fillStyle = color; d.fill(); };
+  let seed = idx * 97 + 13; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  for (let q = 0; q < s.nQ; q++){
+    let a = rnd() < st.skill ? s.key[q] : (s.key[q] + 1 + Math.floor(rnd() * 3)) % s.nC;
+    if (st.special && st.special[q] !== undefined) a = st.special[q];
+    if (a >= 0) mark(bubblePos(q, a));
+    else if (a === -2){ mark(bubblePos(q, 0)); mark(bubblePos(q, 2)); }
+    else if (a === -3) mark(bubblePos(q, s.key[q]), 'rgb(185,185,185)');      // 薄い塗り → 要確認（黄色）になる
+  }
+  [st.kumi, Math.floor(st.ban / 10), st.ban % 10].forEach((dg, row) => mark(idPos(row, dg)));
+  const hand = size => `${size * S}px "Yu Mincho","Hiragino Mincho ProN","MS Mincho",serif`;
+  const Hd = LAYOUT.header;
+  d.fillStyle = 'rgb(55,55,60)'; d.textAlign = 'center'; d.font = hand(5);
+  [[1, st.kumi], [2, st.ban]].forEach(([i, v]) => d.fillText(String(v), (Hd.boxes[i].x + Hd.boxes[i].w/2) * S, (Hd.y + Hd.h - 1.7) * S));
+  d.textAlign = 'left'; d.font = hand(4.6); d.fillText(st.name, (Hd.nameX + 13) * S, (Hd.textY - 0.3) * S);
+  if (s.written.length && st.w){ const R = writtenRect(0); d.font = hand(3.8); d.fillText(st.w, (R.x + 5) * S, (R.y + 10) * S); }
+  // スキャンしたように少し傾け、解析と同じ横幅に縮める
+  const out = document.createElement('canvas'); out.width = TARGET_W; out.height = Math.round(TARGET_W * P.h / P.w);
+  const o = out.getContext('2d');
+  o.fillStyle = 'rgb(248,248,248)'; o.fillRect(0, 0, out.width, out.height);
+  o.translate(out.width/2, out.height/2); o.rotate(-st.rot * Math.PI / 180); o.scale(out.width / src.width, out.width / src.width);
+  o.drawImage(src, -src.width/2, -src.height/2);
+  return out;
+}
+function startPractice(){
+  if (practiceSnapshot) return true;
+  if (busy){ toast('読み取り中は始められません'); return false; }
+  clearTimeout(saveTimer);   // 練習前の変更は保存を終えておく
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* 保存できなくても続ける */ }
+  practiceSnapshot = { json: JSON.stringify(state), images: Object.assign({}, images) };
+  for (const k in images) delete images[k];
+  state.settings = practiceSettings(); state.results = [];
+  state.roster = PRACTICE_STUDENTS.map(p => ({ kumi: p.kumi, ban: p.ban, name: p.name }));
+  normalizeSettings(); selected = null; wOpen = false; $('#scanLog').innerHTML = '';
+  initInputs(); renderSettings();
+  $('#practiceBar').hidden = false; $('#practiceScan').hidden = false;
+  showStep(1);
+  return true;
+}
+function endPractice(){
+  if (!practiceSnapshot || busy) return;
+  const d = JSON.parse(practiceSnapshot.json);
+  state.settings = d.settings; state.results = d.results || []; state.roster = d.roster || [];
+  for (const k in images) delete images[k];
+  Object.assign(images, practiceSnapshot.images);
+  practiceSnapshot = null;
+  normalizeSettings(); selected = null; wOpen = false; $('#scanLog').innerHTML = '';
+  initInputs(); renderSettings();
+  $('#practiceBar').hidden = true; $('#practiceScan').hidden = true;
+  showStep(1); toast('練習を終えて、元のデータに戻しました');
+}
+$('#btnPracticeEnd').onclick = () => { if (confirm('練習を終えて、練習前のデータに戻しますか？（練習中の操作は消えます）')) endPractice(); };
+$('#btnPracticeScan').onclick = () => {
+  if (!practiceSnapshot) return;
+  if (state.results.length && !confirm('サンプルの用紙をもう一度読み取ります（今の練習の結果に追加されます）。よろしいですか？')) return;
+  handleFiles([], PRACTICE_STUDENTS.map((st, i) => ({ name: `サンプル ${st.kumi}組${st.ban}番`, make: () => makePracticeSheet(st, i) })));
+};
+$('#btnPractice2').onclick = () => { if (startPractice()) startTour(1); };
+
+/* ---- 画面ガイド（チュートリアル）：画面の一部を光らせて、順番に説明する ----
+   step：表示する画面、sel：光らせる要素（関数なら実行時に決める）、up：その要素を含む枠まで広げるとき。
+   光らせる要素が見えないとき（例：記述欄が無いときの「記述を採点する」）は、その説明を飛ばす。
+   画面の部品を変えたら、ここの sel も直すこと。 */
+const TOUR = [
+  { step: 1, title: 'ようこそ', text: 'マークシートの採点アプリです。複合機でまとめてスキャンしたPDFを読み込むと、マーク式を自動で採点します。記述式は画像を見ながら点数を入れます。<br>これから画面を順番に案内します（約2分）。' },
+  { step: 1, sel: 'nav.steps', title: '4つの手順', text: '上から順に「1 正答と配点 → 2 解答用紙の印刷 → 3 読み取り → 4 結果の確認と出力」と進めます。いつでもこのタブで行き来できます。' },
+  { step: 1, sel: '#testName', up: '.panel', title: 'テストの基本', text: '学年・テスト名・設問数・選択肢の数を決めます。学年を選ぶと解答用紙に印字されます。下の枠には、用紙に載せる注意事項を書けます。' },
+  { step: 1, sel: '#keyGrid', up: '.panel', title: '正答と配点', text: '問題ごとに正しい選択肢のボタンを押し、右の欄に配点を入れます。配点は上の「全問に適用」でまとめて変えられます。' },
+  { step: 1, sel: '#nW', up: '.panel', title: '記述式の問題（必要なときだけ）', text: '記述式がある場合は欄の数と高さを決めます。解答用紙の下のほうに記述欄が印刷されます。' },
+  { step: 1, sel: '#modelPanel', title: '模範解答・観点など（任意）', text: '開くと、正答の文言（個人票に載る）、問題ごとの観点（知識・技能など）、別解・全員正解を設定できます。使わなければ閉じたままで大丈夫です。' },
+  { step: 2, sel: '#sheetPreview', title: '解答用紙', text: 'この用紙を1枚印刷し、人数分コピーして使います。各問題の配点と観点も印刷されます。' },
+  { step: 2, sel: '#btnPrint', up: '.panel', title: '印刷のしかた', text: '印刷の設定は<strong>A4・倍率100%</strong>にします。四隅の黒い四角は読み取りの目印なので、切ったり書き込んだりしないよう生徒に伝えてください。' },
+  { step: 3, sel: () => practiceSnapshot ? '#practiceScan' : '#drop', title: '読み取り',
+    text: () => practiceSnapshot ? '本番では、回収した用紙を複合機でまとめてスキャンしたPDFをここに入れます。<br><strong>練習では、ガイドを閉じたあとにこの青いボタンを押してみてください。</strong>サンプルの用紙6枚が読み取られます。'
+                                 : '回収した用紙を複合機でまとめてスキャンし、そのPDFをここにドラッグします。1ページを1人分として読み取ります。両面スキャンの白紙ページは自動で飛ばします。' },
+  { step: 3, sel: '#th', up: '.panel', title: '読み取りの感度', text: '薄い塗りを拾えないときや、消し跡を拾ってしまうときに動かします。動かすと、読み取り済みの結果にもすぐ反映されます。' },
+  { step: 4, sel: '#summary', up: '.panel', title: '結果の確認', text: '人数・平均点などが出ます。<strong>黄色の欄</strong>は機械の判定があいまいな箇所です。「次の要確認へ」で順に確認し、表の行を押すと用紙の画像を見ながら直せます。' },
+  { step: 4, sel: '#btnWritten', title: '記述の採点', text: '記述式がある場合はここを押します。問題ごとに全員の答えが画像で並ぶので、点数を入れて Enter で次の人へ進みます。' },
+  { step: 4, sel: '#btnSlips', up: '.row', title: '出力', text: 'CSV（Excelで開ける）、<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）を出せます。印刷画面で「PDFに保存」も選べます。' },
+  { step: 4, sel: '#rosterState', up: '.row', title: '名簿（氏名）', text: '組・番号・氏名の3列のCSVを読み込むと、個人票や一覧に氏名が入ります。一度読み込めば次のテストでも使えます。' },
+  { step: 4, sel: '#btnBackup', title: 'バックアップを忘れずに', text: 'データはこのPCのブラウザに自動保存されますが、消えることもあります。テストごとに「バックアップを保存」でファイルに残してください。' },
+  { step: 'help', title: '案内はここまでです', text: () => practiceSnapshot
+      ? 'このあと「3 読み取り」の青いボタンでサンプルを読み取り、「4 結果の確認と出力」で黄色の欄を直したり、記述を採点したり、個人票を印刷プレビューしたりしてみてください。<br>終わったら、上の青い帯の<strong>「練習を終えて元に戻す」</strong>を押します。'
+      : 'くわしい説明はこの「使い方・引き継ぎ」ページにあります。<br>印刷もスキャンもせずに試せる<strong>「サンプルで練習」</strong>もおすすめです。' },
+];
+let tourIndex = -1, tourEls = null;
+function tourTarget(t){
+  if (!t.sel) return null;
+  let el = document.querySelector(typeof t.sel === 'function' ? t.sel() : t.sel);
+  if (el && t.up) el = el.closest(t.up) || el;
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return r.width && r.height ? el : null;        // 見えない要素は対象にしない
+}
+function startTour(from = 0){
+  try { localStorage.setItem('marksheet-saiten-tour-seen', '1'); } catch (e) { /* 保存できなくても続ける */ }
+  if (!tourEls){
+    tourEls = { block: document.createElement('div'), hole: document.createElement('div'), card: document.createElement('div') };
+    tourEls.block.className = 'tour-block'; tourEls.hole.className = 'tour-hole'; tourEls.card.className = 'tour-card';
+    tourEls.card.setAttribute('role', 'dialog'); tourEls.card.setAttribute('aria-live', 'polite'); tourEls.card.tabIndex = -1;
+    tourEls.block.onclick = e => e.stopPropagation();
+  }
+  Object.values(tourEls).forEach(el => document.body.appendChild(el));
+  document.addEventListener('keydown', tourKey);
+  window.addEventListener('resize', placeTour);
+  showTourStep(from, 1);
+}
+function endTour(){
+  if (!tourEls) return;
+  Object.values(tourEls).forEach(el => el.remove());
+  document.removeEventListener('keydown', tourKey);
+  window.removeEventListener('resize', placeTour);
+  tourIndex = -1;
+}
+function tourKey(e){
+  if (e.key === 'Escape') endTour();
+  else if (e.key === 'ArrowRight') showTourStep(tourIndex + 1, 1);
+  else if (e.key === 'ArrowLeft') showTourStep(tourIndex - 1, -1);
+}
+function showTourStep(i, dir){
+  if (i < 0) i = 0;
+  if (i >= TOUR.length){ endTour(); return; }
+  const t = TOUR[i];
+  if (t.step !== undefined) showStep(t.step);
+  if (t.sel && !tourTarget(t)){ showTourStep(i + (dir || 1), dir || 1); return; }   // 対象が無い説明は飛ばす
+  tourIndex = i;
+  const val = v => typeof v === 'function' ? v() : v;
+  const first = i === 0, last = i === TOUR.length - 1;
+  tourEls.card.innerHTML = `<h3>${val(t.title)}</h3><p>${val(t.text)}</p><div class="tour-foot"><span class="note">${i + 1} / ${TOUR.length}</span>`
+    + (first ? `${practiceSnapshot ? '' : '<button class="btn small" data-t="practice">サンプルで練習しながら見る</button>'}<button class="btn small main" data-t="next">始める</button>`
+             : `<button class="btn small" data-t="prev">戻る</button><button class="btn small main" data-t="next">${last ? '閉じる' : '次へ'}</button>`)
+    + `</div><button class="btn small" data-t="close" style="position:absolute;top:10px;right:10px;padding:2px 8px" aria-label="ガイドを閉じる">×</button>`;
+  tourEls.card.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+    const a = b.dataset.t;
+    if (a === 'next') showTourStep(i + 1, 1);
+    else if (a === 'prev') showTourStep(i - 1, -1);
+    else if (a === 'close') endTour();
+    else if (a === 'practice'){ if (startPractice()) showTourStep(1, 1); }
+  });
+  const el = tourTarget(t);
+  if (el) el.scrollIntoView({ block: 'center' });
+  placeTour();
+  tourEls.card.focus({ preventScroll: true });
+}
+/** 光らせる枠と説明カードの位置を決める。カードは対象の下、入らなければ上、どちらも無理なら画面の下 */
+function placeTour(){
+  if (tourIndex < 0) return;
+  const el = tourTarget(TOUR[tourIndex]), hole = tourEls.hole, card = tourEls.card;
+  const cw = card.offsetWidth, ch = card.offsetHeight, vw = innerWidth, vh = innerHeight, m = 16;
+  if (!el){
+    hole.style.cssText = 'top:50%;left:50%;width:0;height:0';
+    card.style.left = Math.max(m, (vw - cw) / 2) + 'px'; card.style.top = Math.max(m, (vh - ch) / 2) + 'px';
+    return;
+  }
+  const r = el.getBoundingClientRect(), pad = 6;
+  const top = Math.max(4, r.top - pad), bottom = Math.min(vh - 4, r.bottom + pad);
+  hole.style.cssText = `top:${top}px;left:${Math.max(4, r.left - pad)}px;width:${Math.min(vw - 8, r.width + pad*2)}px;height:${Math.max(0, bottom - top)}px`;
+  let y = bottom + 12;
+  if (y + ch > vh - m) y = top - 12 - ch;
+  if (y < m) y = vh - ch - m;
+  card.style.top = y + 'px';
+  card.style.left = Math.min(vw - cw - m, Math.max(m, r.left)) + 'px';
+}
+$('#btnTour').onclick = () => startTour(0);
+$('#btnTour2').onclick = () => startTour(0);
+
 /* ---- 起動 ---- */
 function initInputs(){ document.querySelectorAll('.note-input').forEach(el => el.value = state.settings.note || ''); updateNoteCount(); updateRosterState(); $('#th').value = state.settings.threshold; $('#thVal').textContent = '現在 ' + Math.round(state.settings.threshold*100); }
 restore(); initInputs(); renderSettings();
+// 初めて開いたとき（まだ何も入力していないとき）は画面ガイドを出す
+try { if (!localStorage.getItem('marksheet-saiten-tour-seen') && !state.results.length && !state.settings.testName) setTimeout(() => startTour(0), 500); } catch (e) { /* 使えなければ出さない */ }
 </script>
 </body>
 </html>
