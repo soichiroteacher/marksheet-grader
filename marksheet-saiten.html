@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.6
+ マークシート採点アプリ  ver 1.7
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -232,6 +232,7 @@ details.panel summary{cursor:pointer}
     <p class="lead">テストの設問数と選択肢の数を決めて、正答を選びます。</p>
     <div class="panel">
       <div class="row">
+        <label class="f">学年<select id="grade" title="選ぶと解答用紙の学年の欄に印字されます"><option value="">選ばない（手書き）</option><option value="1">1年</option><option value="2">2年</option><option value="3">3年</option></select></label>
         <label class="f">テスト名<input type="text" id="testName" placeholder="例）2学期期末 技術"></label>
         <label class="f">設問数<input type="number" id="nQ" min="1" max="50"></label>
         <label class="f">選択肢の数<select id="nC"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></label>
@@ -294,6 +295,7 @@ details.panel summary{cursor:pointer}
         <ol class="tips">
           <li>印刷の設定で<strong>倍率は100%（実際のサイズ）</strong>、用紙はA4にします。</li>
           <li>四隅の黒い四角は位置合わせに使います。切ったり書き込んだりしないよう生徒に伝えてください。</li>
+          <li>用紙の上には学年・組・番号を手書きする枠があります。学年は「正答と配点」で選ぶと印字されます（選ばなければ手書き）。採点は組・番号のマークで読み取るので、マークも忘れずに。</li>
           <li>左上の小さい四角で用紙の上下を判定します。逆向きにスキャンしても読み取れます。</li>
           <li>マークはHB以上の濃い鉛筆で、枠の中をしっかり塗ります。</li>
           <li>設問数や選択肢の数を変えたら、用紙も印刷し直してください。</li>
@@ -360,7 +362,7 @@ details.panel summary{cursor:pointer}
       <h2>使い方・引き継ぎ</h2>
       <h3>基本の流れ</h3>
       <ol>
-        <li>「正答と配点」で設問数・選択肢・正答・配点を入れる。</li>
+        <li>「正答と配点」で学年・設問数・選択肢・正答・配点を入れる（学年は解答用紙に印字されます）。</li>
         <li>「解答用紙の印刷」で用紙を1枚印刷し、人数分コピーする。</li>
         <li>回収した用紙を複合機でまとめてスキャン（PDF）し、「読み取り」に入れる。</li>
         <li>「結果の確認と出力」で黄色の欄を確認し、CSVで出力する。</li>
@@ -398,7 +400,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -421,6 +423,9 @@ const LAYOUT = {
     { key: 'kumi',  label: '組',            y: 46 },
     { key: 'ban10', label: '番号（十の位）', y: 52 },
     { key: 'ban1',  label: '番号（一の位）', y: 58 } ] },
+  // 見出し行：学年（アプリで選ぶと印字）・組・番号（手書き）の枠と氏名の線。読み取りには使わない。
+  // 右上マーカーの検出範囲（横20%・縦14%＝右端から42mm・上から41.6mm）に太い線を置かないよう、氏名の線は x=160 までにする
+  header: { y: 29.5, h: 8, textY: 35.3, boxes: [ { key: 'grade', x: 25, w: 11, unit: '年' }, { key: 'kumi', x: 44, w: 13, unit: '組' }, { key: 'ban', x: 65, w: 13, unit: '番' } ], nameX: 86, nameEnd: 160 },
   example: { y: 68 },                                  // 塗りつぶし例の行（読み取りには使わない）
   note: { x: 20, y: 76, w: 170, h: 18, lines: 4, font: 3.1, lineH: 4.1, perLine: 52 }, // 先生の自由記述欄
   answers: { y0: 100, dy: 7.0, perCol: 25, dx: 7, cols: [ { numX: 30, x0: 37 }, { numX: 115, x0: 122 } ] },
@@ -623,6 +628,7 @@ function normalizeSettings(){
     s.allOk[i] = s.allOk[i] === true;
     s.qKanten[i] = kIdx(s.qKanten[i]);
   }
+  s.grade = [1, 2, 3].includes(+s.grade) ? +s.grade : '';              // v1.7 学年（'' は未選択＝用紙に手書き）
   if (!Array.isArray(state.roster)) state.roster = [];
 }
 let saveTimer = null;
@@ -778,7 +784,7 @@ document.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => showStep
 /* ---- STEP 1 ---- */
 function renderSettings(){
   const s = state.settings;
-  $('#testName').value = s.testName; $('#nQ').value = s.nQ; $('#nC').value = s.nC;
+  $('#grade').value = s.grade; $('#testName').value = s.testName; $('#nQ').value = s.nQ; $('#nC').value = s.nC;
   const grid = $('#keyGrid'); grid.innerHTML = '';
   grid.style.gridTemplateColumns = `repeat(auto-fill,minmax(${130 + s.nC * 32}px,1fr))`;
   for (let q = 0; q < s.nQ; q++){
@@ -895,6 +901,7 @@ $('#wSize').onchange = e => changeWrittenLayout(() => {
   if (s.written.length * k > LAYOUT.answers.perCol - 1){ toast('この数ではその高さは入りません。欄の数を減らしてください'); return; }
   s.writtenSize = k;
 });
+$('#grade').onchange = e => { state.settings.grade = e.target.value === '' ? '' : +e.target.value; autosave(); };
 $('#testName').oninput = e => { state.settings.testName = e.target.value; autosave(); };
 $('#nQ').onchange = e => { state.settings.nQ = e.target.value; normalizeSettings(); renderSettings(); autosave(); };
 $('#nC').onchange = e => { state.settings.nC = +e.target.value; normalizeSettings(); renderSettings(); autosave(); };
@@ -916,7 +923,15 @@ function sheetSVG(){
   o += `<rect x="${L.orient.x-L.orient.size/2}" y="${L.orient.y-L.orient.size/2}" width="${L.orient.size}" height="${L.orient.size}" fill="#000"/>`;
   // 見出し
   o += `<text x="105" y="23" text-anchor="middle" font-size="6" font-weight="700">${esc(s.testName || '解答用紙')}</text>`;
-  o += `<text x="25" y="35" font-size="3.6">氏名</text><line x1="38" y1="36" x2="130" y2="36" stroke="#555" stroke-width=".3"/>`;
+  // 学年・組・番号の枠（学年はアプリで選んだものを印字。未選択なら手書き）と氏名
+  const Hd = L.header;
+  Hd.boxes.forEach(b => {
+    o += `<rect x="${b.x}" y="${Hd.y}" width="${b.w}" height="${Hd.h}" fill="none" stroke="#555" stroke-width=".3" rx=".8"/>`
+      + `<text x="${b.x + b.w + 1.2}" y="${Hd.textY}" font-size="3.6">${b.unit}</text>`;
+    if (b.key === 'grade' && s.grade) o += `<text x="${b.x + b.w/2}" y="${Hd.y + Hd.h/2 + 1.8}" text-anchor="middle" font-size="5" font-weight="700">${s.grade}</text>`;
+  });
+  o += `<text x="${Hd.boxes[1].x}" y="39.9" font-size="2.5" fill="#444">※ 組・番号は枠に書き、下の欄にもマークすること（採点はマークで読み取ります）</text>`;
+  o += `<text x="${Hd.nameX}" y="${Hd.textY}" font-size="3.6">氏名</text><line x1="${Hd.nameX + 10}" y1="${Hd.textY + 1}" x2="${Hd.nameEnd}" y2="${Hd.textY + 1}" stroke="#555" stroke-width=".3"/>`;
   const bub = (x, y, label) => `<ellipse cx="${x}" cy="${y}" rx="${B.rx}" ry="${B.ry}" fill="none" stroke="#666" stroke-width=".3"/>`
     + `<text x="${x}" y="${y+1.05}" text-anchor="middle" font-size="2.8" fill="#B8B8B8">${label}</text>`;
   // 組・番号
@@ -1336,12 +1351,12 @@ $('#btnCsv').onclick = () => {
   if (!list.length){ toast('出力する結果がありません'); return; }
   const q = [...Array(s.nQ).keys()];
   const W = s.written, hasW = W.length > 0, hasName = state.roster.length > 0, K = activeKanten();
-  const head = ['組', '番号', ...(hasName ? ['氏名'] : []), '得点', ...(hasW ? ['マーク計', '記述計'] : []), ...K.map(k => k.name)];
+  const head = [...(s.grade ? ['学年'] : []), '組', '番号', ...(hasName ? ['氏名'] : []), '得点', ...(hasW ? ['マーク計', '記述計'] : []), ...K.map(k => k.name)];
   const pad = label => [...Array(head.length - 1).fill(''), label];
   const rows = [[...head, ...q.map(i => '問' + (i+1)), ...W.map(w => w.label), '要確認']];
   list.forEach(r => {
     const id = idOf(r);
-    rows.push([id.kumi, id.ban, ...(hasName ? [nameOf(r)] : []), scoreOf(r), ...(hasW ? [markScoreOf(r), writtenScoreOf(r)] : []),
+    rows.push([...(s.grade ? [s.grade] : []), id.kumi, id.ban, ...(hasName ? [nameOf(r)] : []), scoreOf(r), ...(hasW ? [markScoreOf(r), writtenScoreOf(r)] : []),
       ...kantenScoresOf(r).map(k => k.score),
       ...q.map(i => ansLabel(answerOf(r, i).value)), ...W.map((w, j) => writtenOf(r, j)),
       [needsCheck(r) ? '要確認' : '', W.some((w, j) => writtenOf(r, j) === '') ? '記述未入力' : ''].filter(Boolean).join('・')]);
@@ -1368,7 +1383,7 @@ function scoreStats(list){
   return { n, avg, med, sd, max: sc[n-1], min: sc[0], sc };
 }
 const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
-const idText = id => `${id.kumi === '' ? '?' : id.kumi}組 ${id.ban === '' ? '?' : id.ban}番`;
+const idText = id => `${state.settings.grade ? state.settings.grade + '年 ' : ''}${id.kumi === '' ? '?' : id.kumi}組 ${id.ban === '' ? '?' : id.ban}番`;
 const slipLabel = v => v === -1 ? '無回答' : v === -2 ? '複数' : LAYOUT.labels[v];
 /** 印刷前の確認。要確認・記述の未入力が残っていたら知らせる */
 function readyToPrint(list){
@@ -1433,7 +1448,7 @@ async function slipsHTML(list){
 /** 成績一覧・分析：概要と得点分布 → 設問ごとの分析 → 名簿 */
 function reportHTML(list){
   const s = state.settings, f = fullScore(), st = scoreStats(list), n = list.length;
-  const title = escHtml(s.testName || 'テスト'), today = new Date().toLocaleDateString('ja-JP');
+  const title = (s.grade ? s.grade + '年　' : '') + escHtml(s.testName || 'テスト'), today = new Date().toLocaleDateString('ja-JP');
   const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
   const bar = (p, cls = '') => `<span class="rp-bar ${cls}" style="width:${Math.max(0, p) * 0.35}mm"></span>`;
 
