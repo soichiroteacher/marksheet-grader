@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.7
+ マークシート採点アプリ  ver 1.8
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -290,7 +290,8 @@ details.panel summary{cursor:pointer}
         <label class="f" style="margin-bottom:6px">用紙に載せる文（注意事項など・問題番号の上の枠に印刷）
           <textarea class="note-input" rows="4" placeholder="例）問題用紙の番号に合わせてマークすること。&#10;　　 試験時間は50分です。"></textarea>
         </label>
-        <p class="note note-count" style="margin:0 0 14px"></p>
+        <p class="note note-count" style="margin:0 0 10px"></p>
+        <label style="display:flex;gap:6px;align-items:center;margin:0 0 14px;font-size:14px"><input type="checkbox" id="showInfo">各問題の配点と観点を用紙に印刷する（例：2点 知）</label>
         <button class="btn main" id="btnPrint">解答用紙を印刷</button>
         <ol class="tips">
           <li>印刷の設定で<strong>倍率は100%（実際のサイズ）</strong>、用紙はA4にします。</li>
@@ -376,7 +377,7 @@ details.panel summary{cursor:pointer}
       <p><strong>「成績一覧・分析を印刷」</strong>では、平均点・中央値・最高点・最低点・標準偏差、得点分布、組ごとの成績、観点別の成績、設問ごとの正答率と選択肢の割合、名簿（順位つき）を印刷します。</p>
       <p><strong>氏名を入れるには</strong>：「結果の確認と出力」の「名簿（氏名）を読み込む」で、1列目に組・2列目に番号・3列目に氏名を入れたCSVを読み込みます（Excelで「CSV」形式で保存したものでかまいません。1行目の見出しは自動で飛ばします）。個人票・名簿・CSVに氏名が入ります。名簿は次のテストでもそのまま使えます。</p>
       <h3>観点別の集計・出題ミスへの対応</h3>
-      <p>「模範解答・観点・採点の特例」で、問題ごとに観点（知識・技能／思考・判断・表現など）を選ぶと、観点ごとの得点が個人票・成績一覧・CSVに出ます。「問1〜10を知識・技能に」のような一括設定もできます。観点の名前は変えられます。</p>
+      <p>「模範解答・観点・採点の特例」で、問題ごとに観点（知識・技能／思考・判断・表現など）を選ぶと、観点ごとの得点が個人票・成績一覧・CSVに出ます。解答用紙にも各問題の配点と観点が「2点 知」のように印刷され（観点の略称は名前の1文字目。用紙の下に説明が入ります）、生徒が何点の問題か・どの観点かを確かめられます。印刷したくない場合は「解答用紙の印刷」のチェックを外します。「問1〜10を知識・技能に」のような一括設定もできます。観点の名前は変えられます。</p>
       <p>出題ミスが後から分かったときは、その問題に<strong>「全員正解」</strong>を付けるか、<strong>「別解」</strong>でもう1つの選択肢も正解にします。読み取り直す必要はなく、すぐ得点に反映されます。</p>
       <p>手で直した解答を機械の判定に戻したいときは、その問題の選択欄で「自動判定に戻す」を選びます。用紙ごとまとめて戻すボタンもあります。</p>
       <p>どちらも印刷画面で送信先を「PDFに保存」にすれば、PDFファイルとして残せます。印刷前に要確認や記述の未採点が残っていると、お知らせが出ます。記述の答えの画像は、読み取りをしたその画面でしか載りません（バックアップには画像が入らないため）。</p>
@@ -400,7 +401,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -629,6 +630,7 @@ function normalizeSettings(){
     s.qKanten[i] = kIdx(s.qKanten[i]);
   }
   s.grade = [1, 2, 3].includes(+s.grade) ? +s.grade : '';              // v1.7 学年（'' は未選択＝用紙に手書き）
+  s.showInfo = s.showInfo !== false;                                      // v1.8 用紙に配点・観点を印刷する（初期値は印刷する）
   if (!Array.isArray(state.roster)) state.roster = [];
 }
 let saveTimer = null;
@@ -705,6 +707,18 @@ function activeKanten(){
   const s = state.settings;
   return s.kanten.map((name, k) => ({ k, name: name.trim() }))
     .filter(o => o.name && (s.qKanten.slice(0, s.nQ).includes(o.k) || s.written.some(w => w.kanten === o.k)));
+}
+/** 観点の略称（解答用紙・画面用）。名前の1文字目（知・思・主など）。使っている観点どうしで1文字目が同じなら2文字 */
+function kantenAbbr(k){
+  const n = (state.settings.kanten[k] || '').trim(), one = n.slice(0, 1);
+  return activeKanten().filter(o => o.name.slice(0, 1) === one).length > 1 ? n.slice(0, 2) : one;
+}
+/** 観点 k が使われているか（名前があり、どこかに割り当てられている） */
+const isActiveKanten = k => activeKanten().some(o => o.k === k);
+/** 設問 q の「配点・観点」の短い表示。例：2点 知 */
+function qInfoLabel(q){
+  const s = state.settings, k = s.qKanten[q];
+  return `${+s.points[q] || 0}点` + (isActiveKanten(k) ? ' ' + kantenAbbr(k) : '');
 }
 /** 観点ごとの得点 [{ name, score, full }] */
 function kantenScoresOf(r){
@@ -804,7 +818,8 @@ function renderSettings(){
     pt.setAttribute('aria-label', `問${q+1} 配点`);
     pt.onchange = () => { s.points[q] = Math.max(0, +pt.value || 0); updateKeyStatus(); autosave(); };
     row.appendChild(pt);
-    row.insertAdjacentHTML('beforeend', '<span class="pu">点</span>');
+    row.insertAdjacentHTML('beforeend', '<span class="pu">点</span>'
+      + (isActiveKanten(s.qKanten[q]) ? `<span class="pu" title="${escHtml(s.kanten[s.qKanten[q]])}">${escHtml(kantenAbbr(s.qKanten[q]))}</span>` : ''));
     grid.appendChild(row);
   }
   renderWrittenSettings();
@@ -825,7 +840,7 @@ function renderModelAnswers(){
     lb.innerHTML = `観点${k+1}の名前<input type="text" style="min-width:200px" placeholder="使わないなら空欄">`;
     const inp = lb.querySelector('input'); inp.value = n;
     inp.oninput = () => { s.kanten[k] = inp.value; autosave(); };
-    inp.onchange = () => renderModelAnswers();          // 入力を終えたら選択肢の名前を更新
+    inp.onchange = () => renderSettings();              // 入力を終えたら選択肢の名前・略称を更新
     names.appendChild(lb);
   });
   $('#kBulkSel').innerHTML = kantenOptions(0);
@@ -840,7 +855,7 @@ function renderModelAnswers(){
       + `<label style="font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:2px"><input type="checkbox" data-all ${s.allOk[q] ? 'checked' : ''}>全員正解</label>`;
     const inp = row.querySelector('input.kt'); inp.value = s.keyText[q];
     inp.oninput = () => { s.keyText[q] = inp.value; autosave(); };
-    row.querySelector('[data-k]').onchange = e => { s.qKanten[q] = +e.target.value; autosave(); };
+    row.querySelector('[data-k]').onchange = e => { s.qKanten[q] = +e.target.value; autosave(); renderSettings(); };
     row.querySelector('[data-alt]').onchange = e => { s.keyAlt[q] = e.target.value === '' ? null : +e.target.value; autosave(); };
     row.querySelector('[data-all]').onchange = e => { s.allOk[q] = e.target.checked; updateKeyStatus(); autosave(); };
     grid.appendChild(row);
@@ -859,7 +874,7 @@ function renderModelAnswers(){
 $('#btnKBulk').onclick = () => {
   const s = state.settings, a = Math.max(1, +$('#kBulkFrom').value || 1), b = Math.min(s.nQ, +$('#kBulkTo').value || s.nQ), k = +$('#kBulkSel').value;
   for (let q = a - 1; q < b; q++) s.qKanten[q] = k;
-  renderModelAnswers(); autosave(); toast(`問${a}〜${b}の観点を設定しました`);
+  renderSettings(); autosave(); toast(`問${a}〜${b}の観点を設定しました`);
 };
 function updateKeyStatus(){
   const s = state.settings, f = fullScore();
@@ -965,16 +980,22 @@ function sheetSVG(){
     if (q % 5 === 0 && q % perCol() !== 0) o += `<line x1="${col.numX-8}" y1="${y-L.answers.dy/2}" x2="${x0+(s.nC-1)*L.answers.dx+4}" y2="${y-L.answers.dy/2}" stroke="#ccc" stroke-width=".25"/>`;
     o += `<text x="${col.numX}" y="${y+1.2}" text-anchor="end" font-size="3.3" font-weight="700">${q+1}</text>`;
     for (let c = 0; c < s.nC; c++){ const [x] = bubblePos(q, c); o += bub(x, y, L.labels[c]); }
+    // 配点・観点（例：2点 知）を最後の選択肢の右に小さく。選択肢が9個以上だと隣の列が近いので文字を小さくする
+    if (s.showInfo) o += `<text x="${x0 + (s.nC-1)*L.answers.dx + B.rx + 1.3}" y="${y+0.9}" font-size="${s.nC >= 9 ? 1.9 : 2.3}" fill="#555">${esc(qInfoLabel(q))}</text>`;
   }
   // 記述欄（右上に採点欄）
   s.written.forEach((w, j) => {
     const r = writtenRect(j), sh = Math.min(r.h, 8), sx = r.x + r.w - 22;
     o += `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="none" stroke="#888" stroke-width=".3" rx="1"/>`;
-    o += `<text x="${r.x+2.2}" y="${r.y+4}" font-size="3.1" font-weight="700">${esc(w.label)}</text>`;
+    o += `<text x="${r.x+2.2}" y="${r.y+4}" font-size="3.1" font-weight="700">${esc(w.label)}`
+      + (s.showInfo && isActiveKanten(w.kanten) ? `<tspan font-size="2.4" font-weight="400" fill="#555">　観点：${esc(kantenAbbr(w.kanten))}</tspan>` : '') + `</text>`;
     o += `<rect x="${sx}" y="${r.y}" width="22" height="${sh}" fill="none" stroke="#888" stroke-width=".3"/>`
       + `<text x="${sx+1.2}" y="${r.y+2.8}" font-size="2.2" fill="#777">採点</text>`
       + `<text x="${sx+20.8}" y="${r.y+sh-1.4}" text-anchor="end" font-size="2.4" fill="#777">／${w.points}</text>`;
   });
+  // 用紙の下：観点の略称の説明（四隅マーカーの検出範囲にかからないよう中央に置く）
+  const K = activeKanten();
+  if (s.showInfo && K.length) o += `<text x="105" y="277" text-anchor="middle" font-size="2.5" fill="#444">観点　${K.map(k => `${esc(kantenAbbr(k.k))}：${esc(k.name)}`).join('　')}</text>`;
   return o + `</svg>`;
 }
 /** 自由記述欄の折り返し（全角1・半角0.55で数えて1行の幅に収める） */
@@ -992,7 +1013,9 @@ function wrapNote(text){
   while (out.length && out[out.length-1] === '') out.pop();
   return out;
 }
+$('#showInfo').onchange = e => { state.settings.showInfo = e.target.checked; renderSheetPreview(); autosave(); };
 function renderSheetPreview(){
+  $('#showInfo').checked = state.settings.showInfo;
   $('#sheetPreview').innerHTML = sheetSVG();
   updateNoteCount();
 }
@@ -1403,6 +1426,7 @@ async function printHTML(html){
 async function slipsHTML(list){
   const s = state.settings, f = fullScore(), st = scoreStats(list), today = new Date().toLocaleDateString('ja-JP');
   const hasText = s.keyText.slice(0, s.nQ).some(t => t.trim());
+  const hasK = s.qKanten.slice(0, s.nQ).some(isActiveKanten);          // 観点の列を出すか
   const cols = s.nQ > 20 ? 2 : 1, per = Math.ceil(s.nQ / cols);
   const small = cols === 2 && hasText ? ' style="font-size:9pt"' : '';
   let out = '';
@@ -1418,12 +1442,13 @@ async function slipsHTML(list){
     if (s.nQ){
       h += `<h2>マーク式</h2><div class="rp-cols" style="grid-template-columns:repeat(${cols},1fr)">`;
       for (let c = 0; c < cols; c++){
-        h += `<table${small}><thead><tr><th>問</th><th>あなたの解答</th><th>正答</th>${hasText ? '<th class="l">正答の内容</th>' : ''}<th>得点</th></tr></thead><tbody>`;
+        h += `<table${small}><thead><tr><th>問</th><th>あなたの解答</th><th>正答</th>${hasText ? '<th class="l">正答の内容</th>' : ''}${hasK ? '<th>観点</th>' : ''}<th>得点</th></tr></thead><tbody>`;
         for (let q = c * per; q < Math.min(s.nQ, (c+1) * per); q++){
           const a = answerOf(r, q).value, sc = isScored(q), ok = isCorrect(q, a), pt = +s.points[q] || 0;
           h += `<tr class="${sc && !ok ? 'hl' : ''}"><td>${q+1}</td>`
             + `<td class="${!sc ? '' : ok ? 'ok' : 'ng'}">${slipLabel(a)}${!sc ? '' : ok ? '　○' : '　×'}</td>`
             + `<td>${keyLabel(q)}</td>${hasText ? `<td class="l">${escHtml(s.keyText[q])}</td>` : ''}`
+            + (hasK ? `<td>${isActiveKanten(s.qKanten[q]) ? escHtml(kantenAbbr(s.qKanten[q])) : ''}</td>` : '')
             + `<td>${!sc ? '−' : (ok ? pt : 0)}／${pt}</td></tr>`;
         }
         h += '</tbody></table>';
