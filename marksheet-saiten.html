@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.9
+ マークシート採点アプリ  ver 1.10
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -203,12 +203,15 @@ details.panel summary{cursor:pointer}
 .rp td.l,.rp th.l{text-align:left}
 .rp .ok{color:#23835A;font-weight:700}
 .rp .ng{color:#C8374F;font-weight:700}
-.rp tr.hl td{background:#FBE9EC}
-.rp td.cor{background:#E3F3EA;font-weight:700}
+.rp tr.hl td,.rp tr.miss td{background:#E4E4E4}          /* 網かけ。白黒印刷でも見えるよう灰色にする */
+.rp .miss-sample{background:#E4E4E4;padding:0 1.5mm}
+.rp td.mk{font-size:12.5pt;font-weight:700;line-height:1.1}
+.rp td.wrong{font-weight:700}
+.rp td.cor{font-weight:700;box-shadow:inset 0 0 0 .45mm #111}   /* 正答の選択肢は太枠（色に頼らない） */
 .rp .wbox{border:.3mm solid #999;border-radius:1.5mm;padding:2mm 3mm;margin-bottom:3mm;break-inside:avoid}
 .rp .wbox-h{display:flex;justify-content:space-between;font-weight:700}
 .rp .wbox img{display:block;max-width:100%;max-height:45mm;margin:1.5mm 0;border:.2mm solid #ccc}
-.rp .model{white-space:pre-wrap;background:#F4F6FA;padding:1.5mm 2.5mm;border-radius:1mm;margin-top:1mm}
+.rp .model{white-space:pre-wrap;border:.3mm solid #777;padding:1.5mm 2.5mm;border-radius:1mm;margin-top:1mm}
 .rp .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2mm;margin:3mm 0}
 .rp .stats div{border:.2mm solid #999;border-radius:1.5mm;padding:1.5mm 3mm}
 .rp .stats b{display:block;font-size:16pt}
@@ -391,7 +394,7 @@ details.panel summary{cursor:pointer}
       <p>「正答と配点」の下で記述欄の数と高さ、見出し、配点を決めると、解答用紙の下のほうに記述欄が印刷されます。読み取りのあと「記述を採点する」を押すと、その問題の全員分の答えが画像で並ぶので、点数を入れて Enter で次の人へ進めます。</p>
       <p>記述欄の数や高さを読み取りのあとに変えると、マークの位置がずれて正しく採点できません。変えた場合は読み取り直してください。</p>
       <h3>生徒に返す・成績をまとめる</h3>
-      <p>「結果の確認と出力」の<strong>「個人票を印刷」</strong>で、1人1枚の個人票を印刷できます。得点・平均点、問題ごとの自分の解答と正答（○×）、記述の答えの画像と模範解答が載ります。そのまま生徒に配れます。</p>
+      <p>「結果の確認と出力」の<strong>「個人票を印刷」</strong>で、1人1枚の個人票を印刷できます。得点・平均点、問題ごとの自分の解答と正答（○×）、記述の答えの画像と模範解答が載ります。そのまま生徒に配れます。<strong>白黒印刷で配れるよう</strong>、正誤は色ではなく「○×」の列と網かけ（まちがえた行）で示しています。</p>
       <p>正答の記号だけでなく文言（例：ウ →「光合成」）も載せたいときは、「正答と配点」の下にある<strong>「模範解答・観点・採点の特例」</strong>を開いて入力します。記述式の模範解答もここに入れます。空欄のままでもかまいません。</p>
       <p><strong>「成績一覧・分析を印刷」</strong>では、平均点・中央値・最高点・最低点・標準偏差、得点分布、組ごとの成績、観点別の成績、設問ごとの正答率と選択肢の割合、名簿（順位つき）を印刷します。</p>
       <p><strong>氏名を入れるには</strong>：「結果の確認と出力」の「名簿（氏名）を読み込む」で、1列目に組・2列目に番号・3列目に氏名を入れたCSVを読み込みます（Excelで「CSV」形式で保存したものでかまいません。1行目の見出しは自動で飛ばします）。個人票・名簿・CSVに氏名が入ります。名簿は次のテストでもそのまま使えます。</p>
@@ -420,7 +423,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -1465,11 +1468,13 @@ async function slipsHTML(list){
     if (s.nQ){
       h += `<h2>マーク式</h2><div class="rp-cols" style="grid-template-columns:repeat(${cols},1fr)">`;
       for (let c = 0; c < cols; c++){
-        h += `<table${small}><thead><tr><th>問</th><th>あなたの解答</th><th>正答</th>${hasText ? '<th class="l">正答の内容</th>' : ''}${hasK ? '<th>観点</th>' : ''}<th>得点</th></tr></thead><tbody>`;
+        // 白黒印刷でも分かるように、正誤は色ではなく ○× の列と網かけ（まちがえた行）で示す
+        h += `<table${small}><thead><tr><th>問</th><th>正誤</th><th>あなたの解答</th><th>正答</th>${hasText ? '<th class="l">正答の内容</th>' : ''}${hasK ? '<th>観点</th>' : ''}<th>得点</th></tr></thead><tbody>`;
         for (let q = c * per; q < Math.min(s.nQ, (c+1) * per); q++){
           const a = answerOf(r, q).value, sc = isScored(q), ok = isCorrect(q, a), pt = +s.points[q] || 0;
-          h += `<tr class="${sc && !ok ? 'hl' : ''}"><td>${q+1}</td>`
-            + `<td class="${!sc ? '' : ok ? 'ok' : 'ng'}">${slipLabel(a)}${!sc ? '' : ok ? '　○' : '　×'}</td>`
+          h += `<tr class="${sc && !ok ? 'miss' : ''}"><td>${q+1}</td>`
+            + `<td class="mk">${!sc ? '−' : ok ? '○' : '×'}</td>`
+            + `<td class="${!sc || ok ? '' : 'wrong'}">${slipLabel(a)}</td>`
             + `<td>${keyLabel(q)}</td>${hasText ? `<td class="l">${escHtml(s.keyText[q])}</td>` : ''}`
             + (hasK ? `<td>${isActiveKanten(s.qKanten[q]) ? escHtml(kantenAbbr(s.qKanten[q])) : ''}</td>` : '')
             + `<td>${!sc ? '−' : (ok ? pt : 0)}／${pt}</td></tr>`;
@@ -1488,7 +1493,8 @@ async function slipsHTML(list){
           + (w.model.trim() ? `<div class="model"><b>模範解答</b>　${escHtml(w.model)}</div>` : '') + '</div>';
       }
     }
-    out += h + `<p class="foot">${today}　色のついた行はまちがえた問題です。見直しておきましょう。</p></div>`;
+    const legend = hasK ? '　観点　' + activeKanten().map(k => `${escHtml(kantenAbbr(k.k))}：${escHtml(k.name)}`).join('　') : '';
+    out += h + `<p class="foot">${today}　○正解　×不正解　<span class="miss-sample">網かけ</span>の行はまちがえた問題です。見直しておきましょう。${legend}</p></div>`;
   }
   return out;
 }
@@ -1549,7 +1555,7 @@ function reportHTML(list){
   // 2ページ目：設問ごとの分析（選択肢ごとの割合。正答の欄は緑、正答率50%未満の行は色付き）
   if (s.nQ){
     h += `<div class="rp"><div class="rp-head"><h1>${title}　設問ごとの分析</h1><span>${st.n}人</span></div>
-      <p class="foot" style="margin:2mm 0">数字は各選択肢を選んだ人の割合（%）。緑が正答（別解を含む）、色のついた行は正答率50%未満の問題です。「全員正解」にした問題は正答率100%になります。</p>
+      <p class="foot" style="margin:2mm 0">数字は各選択肢を選んだ人の割合（%）。太枠が正答（別解を含む）、網かけの行は正答率50%未満の問題です。「全員正解」にした問題は正答率100%になります。</p>
       <table style="font-size:${s.nC > 6 ? 8.5 : 9.5}pt"><thead><tr><th>問</th><th>正答</th><th>配点</th>${K.length ? '<th>観点</th>' : ''}<th class="l">正答率</th>`;
     for (let c = 0; c < s.nC; c++) h += `<th>${LAYOUT.labels[c]}</th>`;
     h += '<th>無回答</th><th>複数</th></tr></thead><tbody>';
