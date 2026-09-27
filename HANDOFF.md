@@ -1,21 +1,21 @@
 # マークシート採点アプリ 引き継ぎメモ(後任の開発者向け)
 
-最終更新: 2026-09-27(v1.12)
+最終更新: 2026-09-27(v1.13)
 
 使う先生向けの説明は [README.md](README.md)、変更の記録は [CHANGELOG.md](CHANGELOG.md)、全アプリ共通のルールは `../CLAUDE.md` にある。
 
-**使う場所(2026-09-27 決定)**: 先生方は校務共有サーバーに置いた `marksheet-saiten.html` を Chrome / Edge で開いて使う。GitHub Pages の公開ページは開発・確認用。
+**使う場所(2026-09-27 決定)**: 先生方は校務共有サーバーに置いた `index.html` を Chrome / Edge で開いて使う。GitHub Pages の公開ページは開発・確認用。
 
 ## 今の状態
 
-- 最新は **v1.12**（2026-09-27：pdf.js をファイル内に入れ、インターネットなしでPDFを読めるようにした）。作業中のまま残っている変更はない。
+- 最新は **v1.13**（2026-09-27：本体を index.html に改名し、データの名前を marksheet-grader にそろえた。v1.12 で pdf.js を同梱）。作業中のまま残っている変更はない。
 - 自己診断（「使い方・引き継ぎ」→「自己診断を実行」）は4件とも成功。
 - 練習モードのサンプル6枚（120問）も、すべて正しく読める。
 
 | 場所 | URL・パス |
 |---|---|
 | GitHub（公開リポジトリ） | https://github.com/soichiroteacher/marksheet-grader (2026-09-27 に旧名から改名。旧名のURLも GitHub が自動で転送するが、GitHub Pages の旧URLは表示されなくなった) |
-| 公開ページ（GitHub Pages） | https://soichiroteacher.github.io/marksheet-grader/marksheet-saiten.html |
+| 公開ページ（GitHub Pages） | https://soichiroteacher.github.io/marksheet-grader/ (v1.13 から本体が index.html になったので、短いURLで開ける) |
 | Googleドライブ同期（appcopy） | `C:\Users\idolo\Documents\projects\appcopy\marksheet-grader\` |
 
 - main に push すると、公開ページには1〜2分で反映される。
@@ -45,8 +45,8 @@
 2. **（v1.12 で同梱済み）共有サーバーから file:// で開いたときに PDF が読めるか確認する**
    - pdf.js の読み取り処理（ワーカー）は、ファイル末尾の文字から Blob URL を作って動かしている。開発用サーバー（http://localhost）では本物のワーカーで動くことを確認済み。
    - file:// ではワーカーが作れない場合があるが、そのときは pdf.js が自動で画面側での処理に切り替える（少し遅くなるだけ）。実際の共有サーバーで1回試すこと。
-3. 公開ページの短いURL（`/marksheet-grader/`）は、`index.html` が無いので「ページが見つかりません」になる。
-   - 必要なら、`marksheet-saiten.html` へ転送するだけの `index.html` を置くか検討する。
+3. (v1.13 で解決)公開ページの短いURL(`/marksheet-grader/`)は、本体を `index.html` に改名したので開けるようになった。
+   - 旧ファイル名 `marksheet-saiten.html` は、`index.html` へ自動で移すだけの小さなページとして残している(以前の場所やお気に入りから開いた人のため)。本体ではないので編集しない。
    - ただし「1ファイルで完結」の方針と相談すること。
 
 ## 気をつけること・既知の制限
@@ -73,7 +73,7 @@
 - **生徒に配る印刷物（解答用紙・個人票）は白黒印刷が前提**。色だけで意味を伝えない（○×・網かけ・太枠・文字で示す）。網かけは灰色（#E4E4E4 程度）にする。
 
 - **担当者が変わっても使い続けられること**
-  - `marksheet-saiten.html` の1ファイルで完結させる。インストール不要、ファイルのコピーだけで引き継げること。
+  - 本体 `index.html` の1ファイルで完結させる(v1.12 までのファイル名は `marksheet-saiten.html`)。インストール不要、ファイルのコピーだけで引き継げること。
   - ビルド工程や npm パッケージは持ち込まない。外部のライブラリは PDF 読み込み用の pdf.js 3.11.174 だけで、v1.12 からはファイル末尾に入れてある（インターネット不要）。
   - コメントとUIの文言は日本語。後任の先生が読んで分かる書き方にする。
   - 仕様を変えたら、アプリ内の「使い方・引き継ぎ」ページとファイル先頭のコメント、バージョン番号も更新する。
@@ -132,6 +132,7 @@
 - v1.10 個人票を白黒印刷向けに：「正誤」列（○×）、まちがえた行は灰色の網かけ（`tr.miss`）、まちがえた解答は太字、模範解答は枠線、下に○×・網かけ・観点の説明。成績一覧の正答の選択肢は太枠（`td.cor`）、正答率50%未満の行は灰色の網かけ
 - v1.11 バックアップのファイル名を共通ルールに合わせて `マークシート採点_バックアップ_日付_テスト名.json` に変更（`backupFileName`）。CSVのファイル名（`fileStem`）は変えていない。読み込みはファイル名に関係なくできる
 - v1.12 pdf.js 3.11.174 をファイル末尾に同梱（本体は `<script>`、ワーカーは `<script type="text/plain" id="pdfWorkerCode">` に入れ、読み込み後に Blob URL にして `workerSrc` に渡す）。cdnjs で公開されている SRI（sha512）と一致することを確認して取り込んだ。ファイルは約1.5MBになった
+- v1.13 本体のファイル名を `marksheet-saiten.html` から `index.html` に変更し、旧ファイル名は転送ページとして残した。ブラウザに保存するデータの名前(`STORE_KEY` など)とバックアップの `app` を `marksheet-grader` にそろえた。古い名前のデータ(`OLD_STORE_KEY`・`OLD_TOUR_KEY`)と古いバックアップ(`app: "marksheet-saiten"`)も読める
 
 ## 未確認・今後の課題
 
