@@ -14,8 +14,8 @@
 
 | 場所 | URL・パス |
 |---|---|
-| GitHub（公開リポジトリ） | https://github.com/soichiroteacher/marksheet-saiten |
-| 公開ページ（GitHub Pages） | https://soichiroteacher.github.io/marksheet-saiten/marksheet-saiten.html |
+| GitHub（公開リポジトリ） | https://github.com/soichiroteacher/marksheet-grader (2026-09-27 に旧名から改名。旧名のURLも GitHub が自動で転送するが、GitHub Pages の旧URLは表示されなくなった) |
+| 公開ページ（GitHub Pages） | https://soichiroteacher.github.io/marksheet-grader/marksheet-saiten.html |
 | Googleドライブ同期（appcopy） | `C:\Users\idolo\Documents\projects\appcopy\marksheet-grader\` |
 
 - main に push すると、公開ページには1〜2分で反映される。
@@ -45,7 +45,7 @@
 2. **（v1.12 で同梱済み）共有サーバーから file:// で開いたときに PDF が読めるか確認する**
    - pdf.js の読み取り処理（ワーカー）は、ファイル末尾の文字から Blob URL を作って動かしている。開発用サーバー（http://localhost）では本物のワーカーで動くことを確認済み。
    - file:// ではワーカーが作れない場合があるが、そのときは pdf.js が自動で画面側での処理に切り替える（少し遅くなるだけ）。実際の共有サーバーで1回試すこと。
-3. 公開ページの短いURL（`/marksheet-saiten/`）は、`index.html` が無いので「ページが見つかりません」になる。
+3. 公開ページの短いURL（`/marksheet-grader/`）は、`index.html` が無いので「ページが見つかりません」になる。
    - 必要なら、`marksheet-saiten.html` へ転送するだけの `index.html` を置くか検討する。
    - ただし「1ファイルで完結」の方針と相談すること。
 
