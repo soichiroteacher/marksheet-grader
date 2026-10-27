@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.13
+ マークシート採点アプリ  ver 1.14
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -18,7 +18,7 @@
    2. OMR      … 画像からマークを読む処理
    3. 状態管理 … 設定・結果の保持、自動保存、バックアップ
    4. 画面     … 各ステップの表示と操作
-   5. 出力     … CSV・個人票（生徒配布用）・成績一覧と分析の印刷、バックアップ
+   5. 出力     … CSV・観点別一覧のExcel（評定用）・個人票（生徒配布用）・成績一覧と分析の印刷、バックアップ
 
  【よくある修正】
    ・読み取りが甘い／厳しい → 画面の「読み取りの感度」で調整
@@ -78,6 +78,11 @@ label.f input[type=text]{min-width:260px}
 .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 16px;font-weight:600}
 .btn:hover{border-color:var(--ink-soft)}
 .btn.main{background:var(--rose);border-color:var(--rose);color:#fff}
+/* 個人票に載せる項目（チェック欄） */
+.slip-opts{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin-top:12px;padding:10px 14px;border:1px dashed var(--line);border-radius:8px;font-size:14px}
+.slip-opts-h{font-weight:700;margin-right:4px}
+.slip-opts label{display:flex;gap:5px;align-items:center}
+.slip-opts .note{flex-basis:100%;margin:0}
 .btn.main:hover{filter:brightness(.93)}
 .btn.small{padding:5px 10px;font-size:13px}
 .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -218,6 +223,11 @@ details.panel summary{cursor:pointer}
 .rp .rp-bar{display:inline-block;height:3.2mm;background:#C8374F;vertical-align:middle;border-radius:.5mm}
 .rp .rp-bar.g{background:#23835A}
 .rp .foot{font-size:8.5pt;color:#555;margin-top:3mm}
+/* 個人票の得点分布（横に並べた小さな表。自分の区切りは太枠と「★」で示す） */
+.rp table.dist{width:auto;font-size:8.5pt;margin-top:1mm}
+.rp table.dist th{font-weight:400;white-space:nowrap}
+.rp table.dist caption{text-align:left;font-weight:700;padding-bottom:.5mm}
+.rp table.dist td.me{font-weight:700;box-shadow:inset 0 0 0 .45mm #111}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -315,7 +325,7 @@ details.panel summary{cursor:pointer}
           <li>四隅の黒い四角は位置合わせに使います。切ったり書き込んだりしないよう生徒に伝えてください。</li>
           <li>用紙の上には学年・組・番号を手書きする枠があります。学年は「正答と配点」で選ぶと印字されます（選ばなければ手書き）。採点は組・番号のマークで読み取るので、マークも忘れずに。</li>
           <li>左上の小さい四角で用紙の上下を判定します。逆向きにスキャンしても読み取れます。</li>
-          <li>マークはHB以上の濃い鉛筆で、枠の中をしっかり塗ります。</li>
+          <li>マークはHB以上の鉛筆かシャープペンシルで、枠の中をしっかり塗ります（ボールペンや薄い芯は読み取れないことがあります）。</li>
           <li>設問数や選択肢の数を変えたら、用紙も印刷し直してください。</li>
         </ol>
       </div>
@@ -358,10 +368,15 @@ details.panel summary{cursor:pointer}
       <div class="summary" id="summary"></div>
       <div class="row" style="margin-top:12px">
         <button class="btn main" id="btnCsv">CSVで出力（Excelで開けます）</button>
+        <button class="btn" id="btnXlsx" title="組・番号・氏名・観点ごとの点数・合計点だけの表をExcelファイルで書き出します。評定の表に貼り付けるときに使います">観点別の一覧をExcelで出力（評定用）</button>
         <button class="btn" id="btnSlips" title="1人1枚。解答・正答・模範解答・得点を載せた、生徒に配る用紙を印刷します">個人票を印刷（生徒に配る）</button>
         <button class="btn" id="btnReport" title="平均点・得点分布・設問ごとの正答率・名簿を印刷します">成績一覧・分析を印刷</button>
         <button class="btn" id="btnNextCheck">次の要確認へ</button>
         <button class="btn" id="btnWritten" hidden>記述を採点する</button>
+      </div>
+      <div class="slip-opts" id="slipOpts">
+        <span class="slip-opts-h">個人票に載せる項目</span>
+        <!-- チェック欄は SLIP_OPTS から作る -->
       </div>
       <div class="row" style="margin-top:12px;align-items:center;gap:10px">
         <label class="btn small" title="組・番号・氏名の3列のCSV（Excelで作ったものでよい）">名簿（氏名）を読み込む<input type="file" id="fileRoster" accept=".csv,.txt" hidden></label>
@@ -393,7 +408,9 @@ details.panel summary{cursor:pointer}
       <p>「正答と配点」の下で記述欄の数と高さ、見出し、配点を決めると、解答用紙の下のほうに記述欄が印刷されます。読み取りのあと「記述を採点する」を押すと、その問題の全員分の答えが画像で並ぶので、点数を入れて Enter で次の人へ進めます。</p>
       <p>記述欄の数や高さを読み取りのあとに変えると、マークの位置がずれて正しく採点できません。変えた場合は読み取り直してください。</p>
       <h3>生徒に返す・成績をまとめる</h3>
-      <p>「結果の確認と出力」の<strong>「個人票を印刷」</strong>で、1人1枚の個人票を印刷できます。得点・平均点、問題ごとの自分の解答と正答（○×）、記述の答えの画像と模範解答が載ります。そのまま生徒に配れます。<strong>白黒印刷で配れるよう</strong>、正誤は色ではなく「○×」の列と網かけ（まちがえた行）で示しています。</p>
+      <p>「結果の確認と出力」の<strong>「個人票を印刷」</strong>で、1人1枚の個人票を印刷できます。得点、問題ごとの自分の解答と正答（○×）、記述の答えの画像と模範解答が載ります。そのまま生徒に配れます。<strong>白黒印刷で配れるよう</strong>、正誤は色ではなく「○×」の列と網かけ（まちがえた行）で示しています。</p>
+      <p>ボタンの下の<strong>「個人票に載せる項目」</strong>で、平均点・組の平均点・最高点・観点ごとの平均点・問題ごとの正答率・得点分布（自分の位置に★）・順位・偏差値を、載せるか載せないか選べます。はじめは平均点だけが載ります。順位・偏差値を配るかは、学校の方針に合わせてください。</p>
+      <p><strong>評定の表に貼り付けるには</strong>：「観点別の一覧をExcelで出力（評定用）」を押すと、組・番号・氏名・観点ごとの点数・合計点だけのExcelファイルができます。名簿を読み込んでいれば名簿の全員が組・番号順に並び、用紙がない人（欠席など）は点数が空欄になるので、評定の表とそのまま行をそろえて貼り付けられます。要確認・記述の未採点は「備考」の列に出ます。</p>
       <p>正答の記号だけでなく文言（例：ウ →「光合成」）も載せたいときは、「正答と配点」の下にある<strong>「模範解答・観点・採点の特例」</strong>を開いて入力します。記述式の模範解答もここに入れます。空欄のままでもかまいません。</p>
       <p><strong>「成績一覧・分析を印刷」</strong>では、平均点・中央値・最高点・最低点・標準偏差、得点分布、組ごとの成績、観点別の成績、設問ごとの正答率と選択肢の割合、名簿（順位つき）を印刷します。</p>
       <p><strong>氏名を入れるには</strong>：「結果の確認と出力」の「名簿（氏名）を読み込む」で、1列目に組・2列目に番号・3列目に氏名を入れたCSVを読み込みます（Excelで「CSV」形式で保存したものでかまいません。1行目の見出しは自動で飛ばします）。個人票・名簿・CSVに氏名が入ります。名簿は次のテストでもそのまま使えます。</p>
@@ -403,7 +420,8 @@ details.panel summary{cursor:pointer}
       <p>手で直した解答を機械の判定に戻したいときは、その問題の選択欄で「自動判定に戻す」を選びます。用紙ごとまとめて戻すボタンもあります。</p>
       <p>どちらも印刷画面で送信先を「PDFに保存」にすれば、PDFファイルとして残せます。印刷前に要確認や記述の未採点が残っていると、お知らせが出ます。記述の答えの画像は、読み取りをしたその画面でしか載りません（バックアップには画像が入らないため）。</p>
       <h3>データの保存について</h3>
-      <p>入力した内容はこのPCのブラウザに自動で保存されます。ただしブラウザの履歴削除などで消えることがあるため、テストごとに右上の「バックアップを保存」でファイルに残してください。ファイル名は日付とテスト名になります。</p>
+      <p>入力した内容は<strong>このPCのこのブラウザの中</strong>に自動で保存されます（ファイルとしては見えません）。次に同じPC・同じブラウザで開くと続きから使えますが、別のPCや別のブラウザ（Chrome と Edge）では見えません。また、残るのは<strong>今開いている1つのテストだけ</strong>で、別のテストのバックアップを開くと置き換わります。ブラウザの履歴削除などで消えることもあります。</p>
+      <p>そのため、テストごとに右上の<strong>「バックアップを保存」</strong>でファイルに残してください。ファイル名は日付とテスト名になります。共有サーバーなどに置けば、別のPCでも「バックアップを開く」で続きができます。</p>
       <p>バックアップには設定と採点結果が入ります。スキャン画像は容量が大きいので入りません。元のPDFは校内の決められた場所に保管してください。</p>
       <p>同じテストを別のクラスでも使うときは、バックアップを開いて「読み取り結果をすべて消す」を押せば、正答と配点だけを使い回せます。</p>
       <h3>うまく読めないとき</h3>
@@ -422,7 +440,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -626,6 +644,18 @@ const state = {
 };
 const KANTEN_MAX = 3;   // 観点の数の上限（知識・技能／思考・判断・表現／主体的に学習に取り組む態度）
 const images = {};   // uid → 画像dataURL（保存しない）
+/* 個人票に載せる項目（v1.14）。on は初期値。項目を足すときはここと slipsHTML を直す。
+   順位・偏差値は学校によって配らない方針もあるので、初期値は載せない。 */
+const SLIP_OPTS = [
+  { key: 'avg',       label: '平均点',               on: true  },
+  { key: 'classAvg',  label: '組の平均点',           on: false },
+  { key: 'max',       label: '最高点',               on: false },
+  { key: 'kantenAvg', label: '観点ごとの平均点',     on: false },
+  { key: 'rate',      label: '問題ごとの正答率',     on: false },
+  { key: 'dist',      label: '得点分布（自分の位置）', on: false },
+  { key: 'rank',      label: '順位',                 on: false },
+  { key: 'dev',       label: '偏差値',               on: false },
+];
 
 function normalizeSettings(){
   const s = state.settings;
@@ -658,6 +688,8 @@ function normalizeSettings(){
   }
   s.grade = [1, 2, 3].includes(+s.grade) ? +s.grade : '';              // v1.7 学年（'' は未選択＝用紙に手書き）
   s.showInfo = s.showInfo !== false;                                      // v1.8 用紙に配点・観点を印刷する（初期値は印刷する）
+  if (!s.slipOpts || typeof s.slipOpts !== 'object') s.slipOpts = {};     // v1.14 個人票に載せる項目
+  SLIP_OPTS.forEach(o => { if (typeof s.slipOpts[o.key] !== 'boolean') s.slipOpts[o.key] = o.on; });
   if (!Array.isArray(state.roster)) state.roster = [];
 }
 let saveTimer = null;
@@ -1003,7 +1035,9 @@ function sheetSVG(){
   o += ex(120, `<ellipse cx="121" cy="${ey+.6}" rx="${B.rx+1.2}" ry="${B.ry+1}" fill="#222"/>`, 'はみ出し');
   o += ex(134, `<ellipse cx="134" cy="${ey}" rx="${B.rx}" ry="${B.ry}" fill="#C9C9C9"/>`, 'うすい');
   o += ex(148, `<ellipse cx="148" cy="${ey}" rx="${B.rx}" ry="${B.ry}" fill="#9A9A9A"/><path d="M146 ${ey+1} l4 -2" stroke="#fff" stroke-width=".6"/>`, '消し残し');
-  o += `<text x="190" y="${ey+1.1}" text-anchor="end" font-size="2.8" fill="#444">HB以上の鉛筆で濃く</text>`;
+  // 筆記用具の注意。1行だと右の「消し残し」に重なるので2行に分ける
+  o += `<text x="190" y="${ey-0.6}" text-anchor="end" font-size="2.7" fill="#444">HB以上の鉛筆か</text>`;
+  o += `<text x="190" y="${ey+2.9}" text-anchor="end" font-size="2.7" fill="#444">シャープペンシルで濃く</text>`;
   // 先生の自由記述欄
   const N = L.note;
   o += `<rect x="${N.x}" y="${N.y}" width="${N.w}" height="${N.h}" fill="none" stroke="#999" stroke-width=".25" rx="1.5"/>`;
@@ -1440,6 +1474,87 @@ $('#btnCsv').onclick = () => {
   downloadFile(fileStem() + '_採点結果.csv', csv, 'text/csv');
   if (list.some(needsCheck)) toast('要確認の欄が残ったまま出力しました');
 };
+/* ---- 観点別の一覧（評定用）を Excel ファイルで出力 ----
+   評定の表に貼り付けやすいよう、組・番号・氏名・観点ごとの点数・合計点・備考だけにする。
+   名簿があれば名簿の全員を組・番号順に並べ、用紙がない人（欠席など）は点数を空欄にする（行がずれないように）。 */
+$('#btnXlsx').onclick = () => {
+  const s = state.settings, results = state.results.filter(r => !r.error);
+  if (!results.length){ toast('出力する結果がありません'); return; }
+  const K = activeKanten(), f = fullScore(), kFull = K.map((k, i) => kantenScoresOf(results[0])[i].full);
+  const hasW = s.written.length > 0;
+  const memoOf = r => [needsCheck(r) ? '要確認' : '', hasW && s.written.some((w, j) => writtenOf(r, j) === '') ? '記述未採点' : ''].filter(Boolean).join('・');
+  const rowOf = (kumi, ban, name, r, memo) => [kumi, ban, name,
+    ...K.map((k, i) => r ? kantenScoresOf(r)[i].score : ''), r ? scoreOf(r) : '', [memo, r ? memoOf(r) : ''].filter(Boolean).join('・')];
+  const rows = [];
+  if (state.roster.length){
+    const used = new Set();
+    [...state.roster].sort((a, b) => a.kumi - b.kumi || a.ban - b.ban).forEach(p => {
+      const hit = results.filter(r => { const id = idOf(r); return id.kumi === p.kumi && id.ban === p.ban; });
+      if (!hit.length) rows.push(rowOf(p.kumi, p.ban, p.name, null, '用紙なし（欠席など）'));
+      hit.forEach(r => { used.add(r); rows.push(rowOf(p.kumi, p.ban, p.name, r, hit.length > 1 ? '同じ組・番号が複数' : '')); });
+    });
+    sortedResults().filter(r => !r.error && !used.has(r)).forEach(r => { const id = idOf(r); rows.push(rowOf(id.kumi, id.ban, '', r, '名簿にない組・番号')); });
+  } else {
+    sortedResults().filter(r => !r.error).forEach(r => { const id = idOf(r); rows.push(rowOf(id.kumi, id.ban, '', r, '')); });
+  }
+  const head = ['組', '番号', '氏名', ...K.map((k, i) => `${k.name}（${kFull[i]}点）`), `合計（${f.total}点）`, '備考'];
+  const widths = [6, 6, 16, ...K.map(() => 18), 12, 24];
+  const name = (s.grade ? s.grade + '年_' : '') + fileStem() + '_観点別一覧.xlsx';
+  downloadFile(name, makeXlsx(s.testName || '観点別一覧', [head, ...rows], widths), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const nTodo = rows.filter(r => /要確認|記述未採点/.test(r[r.length - 1])).length;
+  toast(nTodo ? `Excelで出力しました。要確認・記述未採点が${nTodo}人分あります（備考の列）` : 'Excelで出力しました');
+};
+
+/** 1枚のシートだけの Excel ファイル（.xlsx）を作る。外部ライブラリを使わないよう、必要最小限の中身を自分で組み立てる。
+    rows は2次元配列（数値は数値のセル、それ以外は文字のセル）。1行目は見出しとして太字・固定表示にする。
+    .xlsx の正体は XML ファイルをまとめた ZIP なので、圧縮なし（無圧縮で格納）の ZIP を作っている。 */
+function makeXlsx(sheetName, rows, widths){
+  const x = v => String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  const col = n => { let t = ''; for (n++; n > 0; n = Math.floor((n - 1) / 26)) t = String.fromCharCode(65 + (n - 1) % 26) + t; return t; };
+  const sheetData = rows.map((row, ri) => `<row r="${ri+1}">` + row.map((v, ci) => {
+    const ref = col(ci) + (ri + 1), st = ri === 0 ? ' s="1"' : '';
+    if (v === '' || v === null || v === undefined) return '';
+    return typeof v === 'number' && isFinite(v) ? `<c r="${ref}"${st}><v>${v}</v></c>` : `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${x(v)}</t></is></c>`;
+  }).join('') + '</row>').join('');
+  // シート名に使えない文字（\ / ? * [ ] :）は _ にし、31文字までにする（Excel の決まり）
+  const sName = x(String(sheetName).replace(/[\\\/?*\[\]:]/g, '_').slice(0, 31) || 'Sheet1');
+  const NS = 'http://schemas.openxmlformats.org';
+  const files = {
+    '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="${NS}/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,
+    '_rels/.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS}/package/2006/relationships"><Relationship Id="rId1" Type="${NS}/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
+    'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}/spreadsheetml/2006/main" xmlns:r="${NS}/officeDocument/2006/relationships"><sheets><sheet name="${sName}" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+    'xl/_rels/workbook.xml.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS}/package/2006/relationships"><Relationship Id="rId1" Type="${NS}/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${NS}/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+    'xl/styles.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="游ゴシック"/></font><font><b/><sz val="11"/><name val="游ゴシック"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="標準" xfId="0" builtinId="0"/></cellStyles></styleSheet>`,
+    'xl/worksheets/sheet1.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
+      + `<cols>${widths.map((w, i) => `<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sheetData}</sheetData></worksheet>`,
+  };
+  return zipStore(files);
+}
+/** 圧縮なしの ZIP を作る（makeXlsx 用）。files は { ファイル名: 文字列 } */
+function zipStore(files){
+  const enc = new TextEncoder(), crcTable = [];
+  for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; crcTable[n] = c >>> 0; }
+  const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = crcTable[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const d = new Date(), dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  const parts = [], central = []; let offset = 0;
+  for (const [name, text] of Object.entries(files)){
+    const nm = enc.encode(name), data = enc.encode(text), crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, dosTime, 2], [12, dosDate, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, nm.length, 2], [28, 0, 2]]
+      .forEach(([o, v, n]) => n === 4 ? lh.setUint32(o, v, true) : lh.setUint16(o, v, true));
+    const ch = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, dosTime, 2], [14, dosDate, 2], [16, crc, 4], [20, data.length, 4], [24, data.length, 4], [28, nm.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, offset, 4]]
+      .forEach(([o, v, n]) => n === 4 ? ch.setUint32(o, v, true) : ch.setUint16(o, v, true));
+    parts.push(lh, nm, data); central.push(ch, nm);
+    offset += 30 + nm.length + data.length;
+  }
+  const cdSize = central.reduce((a, p) => a + p.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, Object.keys(files).length, 2], [10, Object.keys(files).length, 2], [12, cdSize, 4], [16, offset, 4], [20, 0, 2]]
+    .forEach(([o, v, n]) => n === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true));
+  return new Blob([...parts, ...central, end]);
+}
+
 /* ---- 個人票（生徒に配る）と 成績一覧・分析 ----
    どちらも HTML を #printArea に入れて印刷する（印刷画面で「PDFに保存」も選べる）。 */
 function scoreStats(list){
@@ -1451,6 +1566,16 @@ function scoreStats(list){
   return { n, avg, med, sd, max: sc[n-1], min: sc[0], sc };
 }
 const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
+/** 得点分布の区切り。満点を10区切り前後に分ける。幅は 1・2・5・10・20… のきりのいい値（最上位の区切りは満点を含む）。
+    成績一覧と個人票で同じ区切りにするため共通にしている */
+function scoreBins(sc, total){
+  const step = [1, 2, 5, 10, 20, 25, 50, 100].find(v => v >= total / 12) || 100, nb = Math.max(1, Math.ceil(total / step));
+  const bins = Array(nb).fill(0);
+  const binOf = v => Math.max(0, Math.min(nb - 1, Math.floor(v / step)));
+  sc.forEach(v => bins[binOf(v)]++);
+  const range = i => { const lo = i * step, hi = i === nb - 1 ? total : (i + 1) * step - 1; return lo === hi ? `${lo}` : `${lo}〜${hi}`; };
+  return { step, nb, bins, binOf, range };
+}
 const idText = id => `${state.settings.grade ? state.settings.grade + '年 ' : ''}${id.kumi === '' ? '?' : id.kumi}組 ${id.ban === '' ? '?' : id.ban}番`;
 const slipLabel = v => v === -1 ? '無回答' : v === -2 ? '複数' : LAYOUT.labels[v];
 /** 印刷前の確認。要確認・記述の未入力が残っていたら知らせる */
@@ -1467,28 +1592,61 @@ async function printHTML(html){
   setTimeout(() => window.print(), 100);
 }
 
-/** 個人票：1人1ページ。解答・正答・正答の文言・得点、記述の答え（画像があれば）と模範解答 */
+/** 「個人票に載せる項目」のチェック欄を作る（設定 settings.slipOpts と連動。バックアップにも入る） */
+function renderSlipOpts(){
+  const box = $('#slipOpts'), o = state.settings.slipOpts;
+  box.querySelectorAll('label,.note').forEach(el => el.remove());
+  SLIP_OPTS.forEach(({ key, label }) => {
+    const l = document.createElement('label');
+    l.innerHTML = `<input type="checkbox" data-opt="${key}"${o[key] ? ' checked' : ''}>${label}`;
+    l.querySelector('input').onchange = e => { state.settings.slipOpts[key] = e.target.checked; autosave(); };
+    box.appendChild(l);
+  });
+  box.insertAdjacentHTML('beforeend', '<p class="note">平均点などは、印刷する人（読み取れた用紙すべて）から計算します。順位・偏差値を載せるかは、学校の方針に合わせてください。</p>');
+}
+
+/** 個人票：1人1ページ。解答・正答・正答の文言・得点、記述の答え（画像があれば）と模範解答。
+    平均点・順位などは「個人票に載せる項目」（settings.slipOpts）で選んだものだけ載せる */
 async function slipsHTML(list){
   const s = state.settings, f = fullScore(), st = scoreStats(list), today = new Date().toLocaleDateString('ja-JP');
+  const op = s.slipOpts;
   const hasText = s.keyText.slice(0, s.nQ).some(t => t.trim());
   const hasK = s.qKanten.slice(0, s.nQ).some(isActiveKanten);          // 観点の列を出すか
   const cols = s.nQ > 20 ? 2 : 1, per = Math.ceil(s.nQ / cols);
-  const small = cols === 2 && hasText ? ' style="font-size:9pt"' : '';
+  const small = cols === 2 && (hasText || op.rate) ? ' style="font-size:9pt"' : '';
+  // 全員分から先に計算しておく値（組の平均・観点の平均・問題ごとの正答率・得点分布）
+  const classSt = {};
+  list.forEach(r => { const k = idOf(r).kumi; if (!classSt[k]) classSt[k] = scoreStats(list.filter(x => idOf(x).kumi === k)); });
+  const kAvg = activeKanten().map((k, i) => list.length ? list.reduce((a, r) => a + kantenScoresOf(r)[i].score, 0) / list.length : 0);
+  const qRate = [...Array(s.nQ).keys()].map(q => isScored(q) && list.length ? Math.round(list.filter(r => isCorrect(q, answerOf(r, q).value)).length / list.length * 100) : null);
+  const dist = scoreBins(st.sc, f.total);
   let out = '';
   for (const r of list){
     const id = idOf(r);
-    const name = nameOf(r);
+    const name = nameOf(r), sc = scoreOf(r);
     let h = `<div class="rp"><div class="rp-head"><h1>${escHtml(s.testName || 'テスト')}　結果</h1><div class="rp-id">${idText(id)}　氏名 <u>${escHtml(name)}</u></div></div>`;
-    h += `<div class="rp-score"><div class="big">得点<b>${scoreOf(r)}</b>点 ／ ${f.total}点</div>`
+    const extra = [];
+    if (op.avg) extra.push(`平均点 ${fmt1(st.avg)}点（${st.n}人）`);
+    if (op.classAvg && id.kumi !== '') extra.push(`${id.kumi}組の平均点 ${fmt1(classSt[id.kumi].avg)}点（${classSt[id.kumi].n}人）`);
+    if (op.max) extra.push(`最高点 ${st.max}点`);
+    if (op.rank) extra.push(`順位 ${st.sc.filter(v => v > sc).length + 1}位／${st.n}人`);   // 同点は同じ順位
+    if (op.dev) extra.push(`偏差値 ${fmt1(st.sd ? 50 + 10 * (sc - st.avg) / st.sd : 50)}`);
+    h += `<div class="rp-score"><div class="big">得点<b>${sc}</b>点 ／ ${f.total}点</div>`
       + (s.written.length ? `<span>マーク式 ${markScoreOf(r)}／${f.m}点　記述式 ${writtenScoreOf(r)}／${f.w}点</span>` : '')
-      + `<span>平均点 ${fmt1(st.avg)}点（${st.n}人）</span></div>`;
+      + extra.map(t => `<span>${t}</span>`).join('') + '</div>';
     const ks = kantenScoresOf(r);
-    if (ks.length) h += `<div class="rp-score" style="margin-top:0">` + ks.map(k => `<span><b>${escHtml(k.name)}</b> ${k.score}／${k.full}点</span>`).join('') + '</div>';
+    if (ks.length) h += `<div class="rp-score" style="margin-top:0">` + ks.map((k, i) => `<span><b>${escHtml(k.name)}</b> ${k.score}／${k.full}点${op.kantenAvg ? `（平均 ${fmt1(kAvg[i])}点）` : ''}</span>`).join('') + '</div>';
+    if (op.dist){
+      // 得点分布：区切りごとの人数を横に並べ、自分の区切りを太枠と★で示す（白黒印刷でも分かるように）
+      const me = dist.binOf(sc), idx = [...Array(dist.nb).keys()].reverse();   // 高い点を左に
+      h += `<table class="dist"><caption>得点分布</caption><tbody><tr><th>得点</th>${idx.map(i => `<th>${dist.range(i)}</th>`).join('')}</tr>`
+        + `<tr><th>人数</th>${idx.map(i => `<td class="${i === me ? 'me' : ''}">${i === me ? '★' : ''}${dist.bins[i]}</td>`).join('')}</tr></tbody></table>`;
+    }
     if (s.nQ){
       h += `<h2>マーク式</h2><div class="rp-cols" style="grid-template-columns:repeat(${cols},1fr)">`;
       for (let c = 0; c < cols; c++){
         // 白黒印刷でも分かるように、正誤は色ではなく ○× の列と網かけ（まちがえた行）で示す
-        h += `<table${small}><thead><tr><th>問</th><th>正誤</th><th>あなたの解答</th><th>正答</th>${hasText ? '<th class="l">正答の内容</th>' : ''}${hasK ? '<th>観点</th>' : ''}<th>得点</th></tr></thead><tbody>`;
+        h += `<table${small}><thead><tr><th>問</th><th>正誤</th><th>あなたの解答</th><th>正答</th>${hasText ? '<th class="l">正答の内容</th>' : ''}${hasK ? '<th>観点</th>' : ''}<th>得点</th>${op.rate ? '<th>正答率</th>' : ''}</tr></thead><tbody>`;
         for (let q = c * per; q < Math.min(s.nQ, (c+1) * per); q++){
           const a = answerOf(r, q).value, sc = isScored(q), ok = isCorrect(q, a), pt = +s.points[q] || 0;
           h += `<tr class="${sc && !ok ? 'miss' : ''}"><td>${q+1}</td>`
@@ -1496,7 +1654,8 @@ async function slipsHTML(list){
             + `<td class="${!sc || ok ? '' : 'wrong'}">${slipLabel(a)}</td>`
             + `<td>${keyLabel(q)}</td>${hasText ? `<td class="l">${escHtml(s.keyText[q])}</td>` : ''}`
             + (hasK ? `<td>${isActiveKanten(s.qKanten[q]) ? escHtml(kantenAbbr(s.qKanten[q])) : ''}</td>` : '')
-            + `<td>${!sc ? '−' : (ok ? pt : 0)}／${pt}</td></tr>`;
+            + `<td>${!sc ? '−' : (ok ? pt : 0)}／${pt}</td>`
+            + (op.rate ? `<td>${qRate[q] === null ? '−' : qRate[q] + '%'}</td>` : '') + '</tr>';
         }
         h += '</tbody></table>';
       }
@@ -1513,7 +1672,8 @@ async function slipsHTML(list){
       }
     }
     const legend = hasK ? '　観点　' + activeKanten().map(k => `${escHtml(kantenAbbr(k.k))}：${escHtml(k.name)}`).join('　') : '';
-    out += h + `<p class="foot">${today}　○正解　×不正解　<span class="miss-sample">網かけ</span>の行はまちがえた問題です。見直しておきましょう。${legend}</p></div>`;
+    const notes = [op.rate ? '正答率は、全体で正解した人の割合です。' : '', op.dist ? '得点分布の★が自分の得点の位置です。' : ''].join('');
+    out += h + `<p class="foot">${today}　○正解　×不正解　<span class="miss-sample">網かけ</span>の行はまちがえた問題です。見直しておきましょう。${notes}${legend}</p></div>`;
   }
   return out;
 }
@@ -1532,15 +1692,12 @@ function reportHTML(list){
     <div><span>平均点</span><b>${fmt1(st.avg)}点</b></div><div><span>中央値</span><b>${fmt1(st.med)}点</b></div>
     <div><span>最高点</span><b>${st.max}点</b></div><div><span>最低点</span><b>${st.min}点</b></div>
     <div><span>標準偏差</span><b>${fmt1(st.sd)}</b></div><div><span>平均得点率</span><b>${pct(st.avg, f.total)}%</b></div></div>`;
-  // 得点分布：満点を10区切り前後に分ける。幅は 1・2・5・10・20… のきりのいい値（最上位の区切りは満点を含む）
-  const step = [1, 2, 5, 10, 20, 25, 50, 100].find(v => v >= f.total / 12) || 100, nb = Math.max(1, Math.ceil(f.total / step));
-  const bins = Array(nb).fill(0);
-  st.sc.forEach(v => bins[Math.min(nb - 1, Math.floor(v / step))]++);
+  // 得点分布（区切り方は scoreBins）
+  const { nb, bins, range } = scoreBins(st.sc, f.total);
   const peak = Math.max(1, ...bins);
   h += `<h2>得点分布</h2><table><thead><tr><th>得点</th><th>人数</th><th class="l" style="width:60%">分布</th><th>割合</th></tr></thead><tbody>`;
   for (let i = nb - 1; i >= 0; i--){
-    const lo = i * step, hi = i === nb - 1 ? f.total : (i + 1) * step - 1;
-    h += `<tr><td>${lo === hi ? lo : `${lo}〜${hi}`}点</td><td>${bins[i]}</td><td class="l">${bar(bins[i] / peak * 100)}</td><td>${pct(bins[i], n)}%</td></tr>`;
+    h += `<tr><td>${range(i)}点</td><td>${bins[i]}</td><td class="l">${bar(bins[i] / peak * 100)}</td><td>${pct(bins[i], n)}%</td></tr>`;
   }
   h += '</tbody></table>';
   const kumis = [...new Set(list.map(r => idOf(r).kumi))].sort((a, b) => (a === '' ? 99 : a) - (b === '' ? 99 : b));
@@ -1824,7 +1981,8 @@ const TOUR = [
   { step: 3, sel: '#th', up: '.panel', title: '読み取りの感度', text: '薄い塗りを拾えないときや、消し跡を拾ってしまうときに動かします。動かすと、読み取り済みの結果にもすぐ反映されます。' },
   { step: 4, sel: '#summary', up: '.panel', title: '結果の確認', text: '人数・平均点などが出ます。<strong>黄色の欄</strong>は機械の判定があいまいな箇所です。「次の要確認へ」で順に確認し、表の行を押すと用紙の画像を見ながら直せます。' },
   { step: 4, sel: '#btnWritten', title: '記述の採点', text: '記述式がある場合はここを押します。問題ごとに全員の答えが画像で並ぶので、点数を入れて Enter で次の人へ進みます。' },
-  { step: 4, sel: '#btnSlips', up: '.row', title: '出力', text: 'CSV（Excelで開ける）、<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）を出せます。印刷画面で「PDFに保存」も選べます。' },
+  { step: 4, sel: '#btnSlips', up: '.row', title: '出力', text: 'CSV（Excelで開ける）、<strong>観点別の一覧</strong>（評定の表に貼り付ける用のExcel）、<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）を出せます。印刷画面で「PDFに保存」も選べます。' },
+  { step: 4, sel: '#slipOpts', title: '個人票に載せる項目', text: '平均点・組の平均点・順位・偏差値・得点分布などを、個人票に載せるかどうかここで選べます。はじめは平均点だけが載ります。' },
   { step: 4, sel: '#rosterState', up: '.row', title: '名簿（氏名）', text: '組・番号・氏名の3列のCSVを読み込むと、個人票や一覧に氏名が入ります。一度読み込めば次のテストでも使えます。' },
   { step: 4, sel: '#btnBackup', title: 'バックアップを忘れずに', text: 'データはこのPCのブラウザに自動保存されますが、消えることもあります。テストごとに「バックアップを保存」でファイルに残してください。' },
   { step: 'help', title: '案内はここまでです', text: () => practiceSnapshot
@@ -1913,7 +2071,7 @@ $('#btnTour').onclick = () => startTour(0);
 $('#btnTour2').onclick = () => startTour(0);
 
 /* ---- 起動 ---- */
-function initInputs(){ document.querySelectorAll('.note-input').forEach(el => el.value = state.settings.note || ''); updateNoteCount(); updateRosterState(); $('#th').value = state.settings.threshold; $('#thVal').textContent = '現在 ' + Math.round(state.settings.threshold*100); }
+function initInputs(){ document.querySelectorAll('.note-input').forEach(el => el.value = state.settings.note || ''); updateNoteCount(); updateRosterState(); $('#th').value = state.settings.threshold; $('#thVal').textContent = '現在 ' + Math.round(state.settings.threshold*100); renderSlipOpts(); }
 restore(); initInputs(); renderSettings();
 // 初めて開いたとき（まだ何も入力していないとき）は画面ガイドを出す
 try { if (!localStorage.getItem(TOUR_KEY) && !localStorage.getItem(OLD_TOUR_KEY) && !state.results.length && !state.settings.testName) setTimeout(() => startTour(0), 500); } catch (e) { /* 使えなければ出さない */ }
