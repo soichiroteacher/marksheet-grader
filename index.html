@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.15
+ マークシート採点アプリ  ver 1.16
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -18,7 +18,7 @@
    2. OMR      … 画像からマークを読む処理
    3. 状態管理 … 設定・結果の保持、自動保存、バックアップ
    4. 画面     … 各ステップの表示と操作
-   5. 出力     … CSV・観点別一覧のExcel（評定用）・個人票（生徒配布用）・成績一覧と分析の印刷、バックアップ
+   5. 出力     … 採点結果のExcel（全員＋組ごとのシート）・CSV・観点別一覧のExcel（評定用）・個人票（生徒配布用）・成績一覧と分析の印刷、バックアップ
 
  【よくある修正】
    ・読み取りが甘い／厳しい → 画面の「読み取りの感度」で調整
@@ -346,11 +346,13 @@ details.panel summary{cursor:pointer}
       <p><strong>ここにPDFをドラッグ</strong>するか、</p>
       <p><label class="btn main">ファイルを選ぶ<input type="file" id="fileScan" accept=".pdf,image/png,image/jpeg" multiple hidden></label></p>
       <p class="note">PDF・JPG・PNGに対応。スキャンは白黒またはグレー、200dpi程度がおすすめです。</p>
+      <p class="note"><b>クラスごとのPDFは、まとめて選べます</b>（例：1組.pdf・2組.pdf・3組.pdf を一度に選ぶ）。あとから別のPDFを入れると、今の結果に追加されます。</p>
       <p id="practiceScan" hidden><button class="btn main" id="btnPracticeScan">練習用：サンプルの用紙（6枚）を読み取る</button></p>
     </div>
     <div id="pdfWarn"></div>
     <div class="progress" id="prog" hidden><i></i></div>
     <div class="log" id="scanLog"></div>
+    <div class="note" id="scanFiles"></div>
     <div class="panel" style="margin-top:16px">
       <div class="row">
         <label class="f">読み取りの感度
@@ -372,8 +374,10 @@ details.panel summary{cursor:pointer}
     <p class="lead">黄色の欄は機械の判定があいまいな箇所です。行をクリックすると用紙の画像を見ながら直せます。</p>
     <div class="panel">
       <div class="summary" id="summary"></div>
+      <div class="note" id="classSummary"></div>
       <div class="row" style="margin-top:12px">
-        <button class="btn main" id="btnCsv">CSVで出力（Excelで開けます）</button>
+        <button class="btn main" id="btnXlsxAll" title="全員の解答・得点を1つのExcelファイルにします。「全員」のシートと、組ごとのシートが入ります">採点結果をExcelで出力（全クラスを1ファイルに）</button>
+        <button class="btn" id="btnCsv">CSVで出力</button>
         <button class="btn" id="btnXlsx" title="組・番号・氏名・観点ごとの点数・合計点だけの表をExcelファイルで書き出します。評定の表に貼り付けるときに使います">観点別の一覧をExcelで出力（評定用）</button>
         <button class="btn" id="btnSlips" title="1人1枚。解答・正答・模範解答・得点を載せた、生徒に配る用紙を印刷します">個人票を印刷（生徒に配る）</button>
         <button class="btn" id="btnReport" title="平均点・得点分布・設問ごとの正答率・名簿を印刷します">成績一覧・分析を印刷</button>
@@ -407,9 +411,13 @@ details.panel summary{cursor:pointer}
       <ol>
         <li>「正答と配点」で学年・設問数・選択肢・正答・配点を入れる（学年は解答用紙に印字されます）。</li>
         <li>「解答用紙の印刷」で用紙を1枚印刷し、人数分コピーする。</li>
-        <li>回収した用紙を複合機でまとめてスキャン（PDF）し、「読み取り」に入れる。</li>
-        <li>「結果の確認と出力」で黄色の欄を確認し、CSVで出力する。</li>
+        <li>回収した用紙を複合機でまとめてスキャン（PDF）し、「読み取り」に入れる。クラスごとのPDFは、まとめて選べます。</li>
+        <li>「結果の確認と出力」で黄色の欄を確認し、Excel（またはCSV）で出力する。</li>
       </ol>
+      <h3>学年の全クラスをまとめて採点する</h3>
+      <p>クラスごとにスキャンしたPDF（1組.pdf・2組.pdf…）は、「読み取り」の「ファイルを選ぶ」で<strong>まとめて選べます</strong>（Ctrl キーを押しながらクリック、または Ctrl＋A で全部選ぶ）。1クラスずつ続けて入れても、結果に追加されていきます。読み込んだファイルと枚数は、読み取りの画面の下に出ます。同じファイルをもう一度入れようとすると、確認が出ます。</p>
+      <p>「結果の確認と出力」の<strong>「採点結果をExcelで出力（全クラスを1ファイルに）」</strong>で、1つのExcelファイルにまとめて出力できます。1枚目の「全員」のシートに学年全員、そのあとに「1組」「2組」…のシートが入ります。各シートの下には正答・配点・正答率の行があり、組ごとのシートの正答率はその組だけで計算します。「観点別の一覧をExcelで出力（評定用）」も、組が2つ以上あれば組ごとのシートが付きます。</p>
+      <p>組は用紙にマークされた組の番号で分けます。組のマークが読めなかった用紙は「組が不明」のシートに入るので、結果の画面で直してから出力してください。</p>
       <h3>テスト問題メーカーで作ったテスト</h3>
       <p>テスト問題メーカーの画面上の「採点用JSON」で保存したファイルを、「正答と配点」の<strong>「テスト問題メーカーの正答を読み込む」</strong>で選ぶと、設問数・選択肢の数・正答・配点・正答の文言（個人票に載る）・記述欄（見出し・配点・模範解答）が自動で入ります。手で入れ直す必要はありません。読み込んだあとも、画面で直せます（直した内容はテスト問題メーカーには戻りません）。</p>
       <p>問題を直して<strong>同じテストの正答を読み込み直した</strong>ときは、読み取り結果はそのまま残り、すぐ採点し直されます（出題ミスの修正など）。別のテストの正答を読み込むときは、読み取り結果を消してよいか確認が出ます。設問数・選択肢の数・記述欄が変わったときは、解答用紙を印刷し直してください。</p>
@@ -450,7 +458,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -869,6 +877,7 @@ function showStep(n){
   document.querySelectorAll('section.step').forEach(s => s.classList.remove('on'));
   $(n === 'help' ? '#stepHelp' : '#step' + n).classList.add('on');
   if (n == 2) renderSheetPreview();
+  if (n == 3) renderScanFiles();
   if (n == 4) renderResults();
   window.scrollTo(0, 0);
 }
@@ -1259,9 +1268,24 @@ function isBlankPage(g){
   return dark / (g.length / 3) < 0.0015;
 }
 let busy = false;
+/** 用紙を読み込んだファイル名。v1.15 までの結果には file が無いので、source（「〇〇.pdf 3ページ」）から作る */
+function fileOf(r){ return r.file || String(r.source || '').replace(/ \d+ページ$/, ''); }
+/** 読み込んだファイルと枚数の一覧（読み取りの画面）。クラスごとのPDFを足していくとき、入れ忘れ・二重に気づけるように（v1.16） */
+function renderScanFiles(){
+  const n = {};
+  state.results.forEach(r => { const f = fileOf(r); n[f] = (n[f] || 0) + 1; });
+  const names = Object.keys(n);
+  $('#scanFiles').innerHTML = names.length ? `読み込んだファイル（${names.length}個・合計${state.results.length}枚）：` + names.map(f => `${escHtml(f)}（${n[f]}枚）`).join('、') : '';
+}
 /** files：選んだPDF・画像。madePages：アプリが作るページ [{ name, make: async () => canvas }]（練習モード用） */
 async function handleFiles(files, madePages = []){
-  if (busy) return; busy = true;
+  if (busy) return;
+  // 同じファイルを2回入れると、同じ用紙が2回数えられる。クラスごとのPDFを順に足していくときの入れ間違いを防ぐ（v1.16）
+  const done = new Set(state.results.map(fileOf)), dups = files.filter(f => done.has(f.name));
+  if (dups.length && !confirm(`次のファイルは、すでに読み込んでいます。\n\n${dups.map(f => '・' + f.name).join('\n')}\n\nもう一度読み込むと、同じ用紙が2回数えられます。\n「OK」でもう一度読み込む／「キャンセル」でこのファイルだけ飛ばす`))
+    files = files.filter(f => !done.has(f.name));
+  if (!files.length && !madePages.length) return;
+  busy = true;
   const log = $('#scanLog'), prog = $('#prog'), bar = prog.querySelector('i');
   log.innerHTML = ''; prog.hidden = false; bar.style.width = '0';
   const pages = [...madePages];
@@ -1270,10 +1294,11 @@ async function handleFiles(files, madePages = []){
       if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)){
         if (!window.pdfjsLib){ log.insertAdjacentHTML('beforeend', `<div>${escHtml(f.name)}：PDFを開けません（PDF読み込み用の部品が見つかりません）</div>`); continue; }
         const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
-        for (let i = 1; i <= pdf.numPages; i++) pages.push({ name: `${f.name} ${i}ページ`, pdf, i });
-      } else if (/^image\//.test(f.type)) pages.push({ name: f.name, file: f });
+        for (let i = 1; i <= pdf.numPages; i++) pages.push({ name: `${f.name} ${i}ページ`, fname: f.name, pdf, i });
+      } else if (/^image\//.test(f.type)) pages.push({ name: f.name, fname: f.name, file: f });
     }
     let ok = 0, ng = 0, blank = 0;
+    const perFile = {};   // ファイルごとの読み取り枚数（複数のファイルを選んだとき、ログに出す）
     for (let k = 0; k < pages.length; k++){
       const p = pages[k]; let canvas = document.createElement('canvas');
       if (p.make) canvas = await p.make();                  // 練習モードのサンプル用紙（アプリがその場で作る）
@@ -1298,13 +1323,15 @@ async function handleFiles(files, madePages = []){
       }
       const uid = Date.now().toString(36) + k;
       images[uid] = canvas.toDataURL('image/jpeg', 0.7);
-      state.results.push(Object.assign({ uid, source: p.name, manual: {}, manualId: null, written: [], layoutRows: perCol(), imgW: canvas.width, imgH: canvas.height }, res));
+      state.results.push(Object.assign({ uid, source: p.name, file: p.fname || p.name, manual: {}, manualId: null, written: [], layoutRows: perCol(), imgW: canvas.width, imgH: canvas.height }, res));
       if (res.error){ ng++; log.insertAdjacentHTML('afterbegin', `<div>${escHtml(p.name)}：${res.error}</div>`); } else ok++;
+      perFile[p.fname || p.name] = (perFile[p.fname || p.name] || 0) + 1;
       bar.style.width = ((k+1) / pages.length * 100) + '%';
       await new Promise(r => setTimeout(r, 0));   // 画面を固まらせない
     }
-    log.insertAdjacentHTML('afterbegin', `<div><strong>${ok}枚を読み取りました</strong>${ng ? `（${ng}枚は読み取れず、結果画面で確認できます）` : ''}${blank ? `　白紙のページ ${blank}枚は飛ばしました` : ''}</div>`);
-    autosave();
+    const fileList = files.length > 1 ? `<div>${Object.entries(perFile).map(([n, c]) => `${escHtml(n)}：${c}枚`).join('　')}</div>` : '';
+    log.insertAdjacentHTML('afterbegin', `<div><strong>${ok}枚を読み取りました</strong>${ng ? `（${ng}枚は読み取れず、結果画面で確認できます）` : ''}${blank ? `　白紙のページ ${blank}枚は飛ばしました` : ''}</div>${fileList}`);
+    autosave(); renderScanFiles();
   } catch (e) {
     log.insertAdjacentHTML('afterbegin', `<div class="err">読み込み中に問題が起きました：${escHtml(e.message)}</div>`);
   }
@@ -1315,7 +1342,7 @@ $('#btnClear').onclick = () => {
   if (!state.results.length) return;
   if (!confirm(`読み取り結果 ${state.results.length}件をすべて消します。正答と配点は残ります。よろしいですか？`)) return;
   state.results = []; wOpen = false; for (const k in images) delete images[k];
-  $('#scanLog').innerHTML = ''; autosave(); toast('読み取り結果を消しました');
+  $('#scanLog').innerHTML = ''; autosave(); renderScanFiles(); toast('読み取り結果を消しました');
 };
 
 /* ---- STEP 4：結果 ---- */
@@ -1337,6 +1364,9 @@ function renderResults(){
     <div><b>${scores.length ? Math.min(...scores) : '−'}</b><span>最低点</span></div>
     <div><b style="color:${nCheck ? '#9A7200' : 'var(--ok)'}">${nCheck}</b><span>要確認の人数</span></div>`
     + (s.written.length ? `<div><b style="color:${nTodo ? '#9A7200' : 'var(--ok)'}">${nTodo}</b><span>記述の未入力</span></div>` : '');
+  // 複数の組をまとめて読んだときは、組ごとの人数と平均点も出す（v1.16）
+  const groups = classGroups(valid);
+  $('#classSummary').innerHTML = groups.length > 1 ? '組ごと：' + groups.map(g => `<b>${g.kumi === '' ? '組が不明' : g.kumi + '組'}</b> ${g.list.length}人・平均${(g.list.reduce((a, r) => a + scoreOf(r), 0) / g.list.length).toFixed(1)}点`).join('　／　') : '';
   if (!list.length){ $('#resultArea').innerHTML = '<div class="panel">まだ読み取った用紙がありません。「読み取り」でスキャンしたPDFを入れてください。</div>'; $('#detailArea').innerHTML = ''; return; }
 
   const hasName = state.roster.length > 0, base = hasName ? 5 : 4;
@@ -1569,9 +1599,16 @@ $('#btnNextCheck').onclick = () => {
 /* ============================================================
    5. 出力・バックアップ
    ============================================================ */
-$('#btnCsv').onclick = () => {
-  const s = state.settings, list = sortedResults().filter(r => !r.error);
-  if (!list.length){ toast('出力する結果がありません'); return; }
+/** 組ごとに分ける（組の番号順。組が読めなかった用紙は最後に「組が不明」として） [{ kumi, list }] */
+function classGroups(list){
+  const m = new Map();
+  list.forEach(r => { const k = idOf(r).kumi; if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
+  return [...m.entries()].sort((a, b) => (a[0] === '' ? 99 : a[0]) - (b[0] === '' ? 99 : b[0])).map(([kumi, list]) => ({ kumi, list }));
+}
+/** 採点結果の表（CSV と Excel で共通）。list の全員の行のあとに、正答・配点・観点・正答率の行を付ける。
+    正答率は list の中で計算するので、組ごとのシートではその組の正答率になる */
+function detailRows(list){
+  const s = state.settings;
   const q = [...Array(s.nQ).keys()];
   const W = s.written, hasW = W.length > 0, hasName = state.roster.length > 0, K = activeKanten();
   const head = [...(s.grade ? ['学年'] : []), '組', '番号', ...(hasName ? ['氏名'] : []), '得点', ...(hasW ? ['マーク計', '記述計'] : []), ...K.map(k => k.name)];
@@ -1590,11 +1627,33 @@ $('#btnCsv').onclick = () => {
   rows.push([...pad('配点'), ...q.map(i => s.points[i]), ...W.map(w => w.points)]);
   if (K.length) rows.push([...pad('観点'), ...q.map(i => s.kanten[s.qKanten[i]] || ''), ...W.map(w => s.kanten[w.kanten] || '')]);
   rows.push([...pad('正答率(%)・記述は平均点'), ...q.map(i => !isScored(i) ? '' : Math.round(list.filter(r => isCorrect(i, answerOf(r, i).value)).length / list.length * 100)),
-    ...W.map((w, j) => { const vs = list.map(r => writtenOf(r, j)).filter(v => v !== ''); return vs.length ? (vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(1) : ''; })]);
+    ...W.map((w, j) => { const vs = list.map(r => writtenOf(r, j)).filter(v => v !== ''); return vs.length ? Math.round(vs.reduce((a, b) => a + b, 0) / vs.length * 10) / 10 : ''; })]);
+  return rows;
+}
+$('#btnCsv').onclick = () => {
+  const list = sortedResults().filter(r => !r.error);
+  if (!list.length){ toast('出力する結果がありません'); return; }
+  const rows = detailRows(list);
   const csv = '\uFEFF' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
   downloadFile(fileStem() + '_採点結果.csv', csv, 'text/csv');
   if (list.some(needsCheck)) toast('要確認の欄が残ったまま出力しました');
 };
+/* ---- 採点結果を Excel ファイルで出力（v1.16） ----
+   クラスごとのPDFをまとめて読んだとき、1つのファイルで見られるようにする。
+   1枚目「全員」は CSV と同じ表。2枚目からは組ごとのシート（組が2つ以上のときだけ）。 */
+$('#btnXlsxAll').onclick = () => {
+  const s = state.settings, list = sortedResults().filter(r => !r.error);
+  if (!list.length){ toast('出力する結果がありません'); return; }
+  const head = detailRows(list)[0];
+  const widths = head.map(h => h === '氏名' ? 16 : /^(組|番号|学年|得点|問\d+)$/.test(h) ? 6 : h === '要確認' ? 14 : 10);
+  const groups = classGroups(list);
+  const sheets = [{ name: '全員', rows: detailRows(list), widths }];
+  if (groups.length > 1) groups.forEach(g => sheets.push({ name: g.kumi === '' ? '組が不明' : g.kumi + '組', rows: detailRows(g.list), widths }));
+  downloadFile((s.grade ? s.grade + '年_' : '') + fileStem() + '_採点結果.xlsx', makeXlsx(sheets), XLSX_TYPE);
+  const nCls = groups.filter(g => g.kumi !== '').length;
+  toast(`Excelで出力しました（${list.length}人${nCls > 1 ? `・${nCls}クラス` : ''}）` + (list.some(needsCheck) ? '。要確認の欄が残っています' : ''));
+};
+const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 /* ---- 観点別の一覧（評定用）を Excel ファイルで出力 ----
    評定の表に貼り付けやすいよう、組・番号・氏名・観点ごとの点数・合計点・備考だけにする。
    名簿があれば名簿の全員を組・番号順に並べ、用紙がない人（欠席など）は点数を空欄にする（行がずれないように）。 */
@@ -1621,34 +1680,52 @@ $('#btnXlsx').onclick = () => {
   const head = ['組', '番号', '氏名', ...K.map((k, i) => `${k.name}（${kFull[i]}点）`), `合計（${f.total}点）`, '備考'];
   const widths = [6, 6, 16, ...K.map(() => 18), 12, 24];
   const name = (s.grade ? s.grade + '年_' : '') + fileStem() + '_観点別一覧.xlsx';
-  downloadFile(name, makeXlsx(s.testName || '観点別一覧', [head, ...rows], widths), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  // 1枚目は全員。組が2つ以上あれば、組ごとのシートも付ける（評定の表はクラスごとのことが多いので、貼り付けやすいように。v1.16）
+  const sheets = [{ name: '全員', rows: [head, ...rows], widths }];
+  const kumis = [...new Set(rows.map(r => r[0]).filter(k => k !== ''))].sort((a, b) => a - b);
+  if (kumis.length > 1) kumis.forEach(k => sheets.push({ name: k + '組', rows: [head, ...rows.filter(r => r[0] === k).sort((a, b) => (a[1] === '' ? 999 : a[1]) - (b[1] === '' ? 999 : b[1]))], widths }));
+  downloadFile(name, makeXlsx(sheets), XLSX_TYPE);
   const nTodo = rows.filter(r => /要確認|記述未採点/.test(r[r.length - 1])).length;
   toast(nTodo ? `Excelで出力しました。要確認・記述未採点が${nTodo}人分あります（備考の列）` : 'Excelで出力しました');
 };
 
-/** 1枚のシートだけの Excel ファイル（.xlsx）を作る。外部ライブラリを使わないよう、必要最小限の中身を自分で組み立てる。
+/** Excel ファイル（.xlsx）を作る。外部ライブラリを使わないよう、必要最小限の中身を自分で組み立てる。
+    sheets は [{ name, rows, widths }]（v1.16 から複数のシートに対応。全員と組ごとのシートを1ファイルに入れるため）。
     rows は2次元配列（数値は数値のセル、それ以外は文字のセル）。1行目は見出しとして太字・固定表示にする。
     .xlsx の正体は XML ファイルをまとめた ZIP なので、圧縮なし（無圧縮で格納）の ZIP を作っている。 */
-function makeXlsx(sheetName, rows, widths){
+function makeXlsx(sheets){
   const x = v => String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
   const col = n => { let t = ''; for (n++; n > 0; n = Math.floor((n - 1) / 26)) t = String.fromCharCode(65 + (n - 1) % 26) + t; return t; };
-  const sheetData = rows.map((row, ri) => `<row r="${ri+1}">` + row.map((v, ci) => {
-    const ref = col(ci) + (ri + 1), st = ri === 0 ? ' s="1"' : '';
-    if (v === '' || v === null || v === undefined) return '';
-    return typeof v === 'number' && isFinite(v) ? `<c r="${ref}"${st}><v>${v}</v></c>` : `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${x(v)}</t></is></c>`;
-  }).join('') + '</row>').join('');
-  // シート名に使えない文字（\ / ? * [ ] :）は _ にし、31文字までにする（Excel の決まり）
-  const sName = x(String(sheetName).replace(/[\\\/?*\[\]:]/g, '_').slice(0, 31) || 'Sheet1');
+  const sheetXml = (rows, widths) => {
+    const sheetData = rows.map((row, ri) => `<row r="${ri+1}">` + row.map((v, ci) => {
+      const ref = col(ci) + (ri + 1), st = ri === 0 ? ' s="1"' : '';
+      if (v === '' || v === null || v === undefined) return '';
+      return typeof v === 'number' && isFinite(v) ? `<c r="${ref}"${st}><v>${v}</v></c>` : `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${x(v)}</t></is></c>`;
+    }).join('') + '</row>').join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
+      + `<cols>${widths.map((w, i) => `<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sheetData}</sheetData></worksheet>`;
+  };
+  // シート名に使えない文字（\ / ? * [ ] :）は _ にし、31文字までにする。同じ名前は使えないので (2) を付ける（Excel の決まり）
+  const used = new Set();
+  const names = sheets.map(sh => {
+    const base = String(sh.name).replace(/[\\/?*\[\]:]/g, '_').slice(0, 28) || 'Sheet';
+    let n = base, i = 2; while (used.has(n)) n = `${base}(${i++})`;
+    used.add(n); return n;
+  });
   const NS = 'http://schemas.openxmlformats.org';
   const files = {
-    '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="${NS}/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,
+    '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="${NS}/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>`
+      + sheets.map((sh, i) => `<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')
+      + `<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,
     '_rels/.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS}/package/2006/relationships"><Relationship Id="rId1" Type="${NS}/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
-    'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}/spreadsheetml/2006/main" xmlns:r="${NS}/officeDocument/2006/relationships"><sheets><sheet name="${sName}" sheetId="1" r:id="rId1"/></sheets></workbook>`,
-    'xl/_rels/workbook.xml.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS}/package/2006/relationships"><Relationship Id="rId1" Type="${NS}/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${NS}/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+    'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}/spreadsheetml/2006/main" xmlns:r="${NS}/officeDocument/2006/relationships"><sheets>`
+      + names.map((n, i) => `<sheet name="${x(n)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('') + `</sheets></workbook>`,
+    'xl/_rels/workbook.xml.rels': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS}/package/2006/relationships">`
+      + sheets.map((sh, i) => `<Relationship Id="rId${i+1}" Type="${NS}/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')
+      + `<Relationship Id="rId${sheets.length+1}" Type="${NS}/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
     'xl/styles.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="游ゴシック"/></font><font><b/><sz val="11"/><name val="游ゴシック"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="標準" xfId="0" builtinId="0"/></cellStyles></styleSheet>`,
-    'xl/worksheets/sheet1.xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
-      + `<cols>${widths.map((w, i) => `<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${sheetData}</sheetData></worksheet>`,
   };
+  sheets.forEach((sh, i) => { files[`xl/worksheets/sheet${i+1}.xml`] = sheetXml(sh.rows, sh.widths); });
   return zipStore(files);
 }
 /** 圧縮なしの ZIP を作る（makeXlsx 用）。files は { ファイル名: 文字列 } */
@@ -2079,7 +2156,7 @@ $('#btnPracticeEnd').onclick = () => { if (confirm('練習を終えて、練習�
 $('#btnPracticeScan').onclick = () => {
   if (!practiceSnapshot) return;
   if (state.results.length && !confirm('サンプルの用紙をもう一度読み取ります（今の練習の結果に追加されます）。よろしいですか？')) return;
-  handleFiles([], PRACTICE_STUDENTS.map((st, i) => ({ name: `サンプル ${st.kumi}組${st.ban}番`, make: () => makePracticeSheet(st, i) })));
+  handleFiles([], PRACTICE_STUDENTS.map((st, i) => ({ name: `サンプル ${st.kumi}組${st.ban}番`, fname: 'サンプルの用紙', make: () => makePracticeSheet(st, i) })));
 };
 $('#btnPractice2').onclick = () => { if (startPractice()) startTour(1); };
 
@@ -2099,11 +2176,11 @@ const TOUR = [
   { step: 2, sel: '#btnPrint', up: '.panel', title: '印刷のしかた', text: '印刷の設定は<strong>A4・倍率100%</strong>にします。四隅の黒い四角は読み取りの目印なので、切ったり書き込んだりしないよう生徒に伝えてください。' },
   { step: 3, sel: () => practiceSnapshot ? '#practiceScan' : '#drop', title: '読み取り',
     text: () => practiceSnapshot ? '本番では、回収した用紙を複合機でまとめてスキャンしたPDFをここに入れます。<br><strong>練習では、ガイドを閉じたあとにこの青いボタンを押してみてください。</strong>サンプルの用紙6枚が読み取られます。'
-                                 : '回収した用紙を複合機でまとめてスキャンし、そのPDFをここにドラッグします。1ページを1人分として読み取ります。両面スキャンの白紙ページは自動で飛ばします。' },
+                                 : '回収した用紙を複合機でまとめてスキャンし、そのPDFをここにドラッグします。1ページを1人分として読み取ります。両面スキャンの白紙ページは自動で飛ばします。<br>クラスごとのPDFは、まとめて選んでかまいません。' },
   { step: 3, sel: '#th', up: '.panel', title: '読み取りの感度', text: '薄い塗りを拾えないときや、消し跡を拾ってしまうときに動かします。動かすと、読み取り済みの結果にもすぐ反映されます。' },
   { step: 4, sel: '#summary', up: '.panel', title: '結果の確認', text: '人数・平均点などが出ます。<strong>黄色の欄</strong>は機械の判定があいまいな箇所です。「次の要確認へ」で順に確認し、表の行を押すと用紙の画像を見ながら直せます。' },
   { step: 4, sel: '#btnWritten', title: '記述の採点', text: '記述式がある場合はここを押します。問題ごとに全員の答えが画像で並ぶので、点数を入れて Enter で次の人へ進みます。' },
-  { step: 4, sel: '#btnSlips', up: '.row', title: '出力', text: 'CSV（Excelで開ける）、<strong>観点別の一覧</strong>（評定の表に貼り付ける用のExcel）、<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）を出せます。印刷画面で「PDFに保存」も選べます。' },
+  { step: 4, sel: '#btnSlips', up: '.row', title: '出力', text: '<strong>採点結果のExcel</strong>（全員と組ごとのシートが1つのファイルに入る）、CSV、<strong>観点別の一覧</strong>（評定の表に貼り付ける用のExcel）、<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）を出せます。印刷画面で「PDFに保存」も選べます。' },
   { step: 4, sel: '#slipOpts', title: '個人票に載せる項目', text: '平均点・組の平均点・順位・偏差値・得点分布などを、個人票に載せるかどうかここで選べます。はじめは平均点だけが載ります。' },
   { step: 4, sel: '#rosterState', up: '.row', title: '名簿（氏名）', text: '組・番号・氏名の3列のCSVを読み込むと、個人票や一覧に氏名が入ります。一度読み込めば次のテストでも使えます。' },
   { step: 4, sel: '#btnBackup', title: 'バックアップを忘れずに', text: 'データはこのPCのブラウザに自動保存されますが、消えることもあります。テストごとに「バックアップを保存」でファイルに残してください。' },
