@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.18
+ マークシート採点アプリ  ver 1.19
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -402,6 +402,7 @@ details.panel summary{cursor:pointer}
       </div>
     </div>
     <div id="layoutWarn"></div>
+    <div id="suspectWarn"></div>
     <div id="writtenArea"></div>
     <div id="resultArea"></div>
     <div id="detailArea"></div>
@@ -441,6 +442,7 @@ details.panel summary{cursor:pointer}
       <p><strong>氏名を入れるには</strong>：「結果の確認と出力」の「名簿（氏名）を読み込む」で、1列目に組・2列目に番号・3列目に氏名（4列目にフリガナを入れると、個人票の氏名の上に出ます。無くてもかまいません）を入れたCSVを読み込みます（Excelで「CSV」形式で保存したものでかまいません。1行目の見出しは自動で飛ばします）。個人票・名簿・CSVに氏名が入ります。名簿は次のテストでもそのまま使えます。</p>
       <h3>観点別の集計・出題ミスへの対応</h3>
       <p>「模範解答・観点・採点の特例」で、問題ごとに観点（知識・技能／思考・判断・表現など）を選ぶと、観点ごとの得点が個人票・成績一覧・CSVに出ます。解答用紙にも各問題の配点と観点が「2点 知」のように印刷され（観点の略称は名前の1文字目。用紙の下に説明が入ります）、生徒が何点の問題か・どの観点かを確かめられます。印刷したくない場合は「解答用紙の印刷」のチェックを外します。「問1〜10を知識・技能に」のような一括設定もできます。観点の名前は変えられます。</p>
+      <p><strong>出題ミスの疑いの知らせ</strong>：読み取った人数が10人以上になると、答えの分かれ方から、出題ミスの疑いがある問題を「結果の確認と出力」の画面と「成績一覧・分析」に出します。得点の高い生徒ほどまちがえている問題、得点の高い生徒の多くが同じ誤答を選んでいる問題、1つの誤答に答えが集まっている問題です。正答の登録ミスや、答えが2つある問題に、返却する前に気づけます。機械的に選んでいるので、印が付いても問題がないこともあります。</p>
       <p>出題ミスが後から分かったときは、その問題に<strong>「全員正解」</strong>を付けるか、<strong>「別解」</strong>でもう1つの選択肢も正解にします。読み取り直す必要はなく、すぐ得点に反映されます。</p>
       <p>手で直した解答を機械の判定に戻したいときは、その問題の選択欄で「自動判定に戻す」を選びます。用紙ごとまとめて戻すボタンもあります。</p>
       <p>どちらも印刷画面で送信先を「PDFに保存」にすれば、PDFファイルとして残せます。印刷前に要確認や記述の未採点が残っていると、お知らせが出ます。記述の答えの画像は、読み取りをしたその画面でしか載りません（バックアップには画像が入らないため）。</p>
@@ -465,7 +467,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -1384,6 +1386,10 @@ function renderResults(){
   const full = fullScore().total;
   const nTodo = s.written.length ? valid.reduce((a, r) => a + s.written.filter((w, j) => writtenOf(r, j) === '').length, 0) : 0;
   const nBad = list.filter(layoutMismatch).length;
+  const sus = suspectQuestions(list.filter(r => !r.error));
+  $('#suspectWarn').innerHTML = sus.length ? `<div class="warn"><b>出題ミスの疑いがある問題があります。</b>正答と問題文を確かめてください（答えの分かれ方から機械的に選んでいるので、問題がないこともあります）。<ul style="margin:6px 0">`
+    + sus.map(x => `<li>問${x.q + 1}（正答 ${keyLabel(x.q)}）：${x.reasons.join('。')}</li>`).join('')
+    + `</ul>正答がまちがっていたら「正答と配点」で直します。答えが2つあるときは「別解」、問題に不備があるときは「全員正解」にできます（「模範解答・観点・採点の特例」）。</div>` : '';
   $('#layoutWarn').innerHTML = nBad ? `<div class="err">記述欄の数か高さを読み取りのあとに変えたため、${nBad}枚の用紙はマークの位置が合っていません。設定を元に戻すか、「読み取り」でもう一度読み込んでください。</div>` : '';
   $('#btnWritten').hidden = !s.written.length || !valid.length;
   const nCheck = list.filter(needsCheck).length;
@@ -1938,6 +1944,34 @@ async function fitSlips(html){
   return out;
 }
 
+/** 出題ミスの疑いがある問題を探す（v1.19）。[{ q, reasons: [文] }]
+    答えの分かれ方だけで機械的に選ぶので、印が付いても問題がないことはある（難しい良問など）。人数が少ないと偶然の差が大きいので、10人未満では調べない。
+    ① 得点の上位27%の生徒より、下位27%の生徒のほうが正答率が10ポイント以上高い（得点の高い生徒ほどまちがえている）
+    ② 上位27%の生徒で、正答よりも多く選ばれた誤答の選択肢がある（正答の登録ミスのことが多い）
+    ③ 全体で、1つの誤答の選択肢に40%以上が集まり、正答を選んだ人より多い
+    「全員正解」にした問題と、正答が未入力の問題は調べない。 */
+function suspectQuestions(list){
+  const s = state.settings, n = list.length, out = [];
+  if (n < 10) return out;
+  const sorted = [...list].sort((a, b) => scoreOf(b) - scoreOf(a)), g = Math.max(3, Math.round(n * 0.27));
+  const upper = sorted.slice(0, g), lower = sorted.slice(n - g);
+  const pc = (a, b) => Math.round(a / b * 100);
+  for (let q = 0; q < s.nQ; q++){
+    if (!isScored(q) || s.allOk[q]) continue;
+    const reasons = [];
+    const okOf = grp => grp.filter(r => isCorrect(q, answerOf(r, q).value)).length;
+    const upOk = pc(okOf(upper), g), lowOk = pc(okOf(lower), g);
+    if (lowOk - upOk >= 10) reasons.push(`得点の高い生徒ほどまちがえています（上位の正答率 ${upOk}%、下位の正答率 ${lowOk}%）`);
+    const wrongCnt = grp => { const c = Array(s.nC).fill(0); grp.forEach(r => { const v = answerOf(r, q).value; if (v >= 0 && v < s.nC && !isCorrect(q, v)) c[v]++; }); return c; };
+    const upW = wrongCnt(upper), upTop = upW.indexOf(Math.max(...upW));
+    if (upW[upTop] >= 2 && upW[upTop] > okOf(upper)) reasons.push(`得点の高い生徒の多くが「${LAYOUT.labels[upTop]}」を選んでいます（上位の${pc(upW[upTop], g)}%）`);
+    const allW = wrongCnt(list), allTop = allW.indexOf(Math.max(...allW)), allOk = okOf(list);
+    if (allW[allTop] / n >= 0.4 && allW[allTop] > allOk) reasons.push(`「${LAYOUT.labels[allTop]}」に答えが集まっています（全体の${pc(allW[allTop], n)}%。正答は${pc(allOk, n)}%）`);
+    if (reasons.length) out.push({ q, reasons });
+  }
+  return out;
+}
+
 /** 成績一覧・分析：概要と得点分布 → 設問ごとの分析 → 名簿 */
 function reportHTML(list){
   const s = state.settings, f = fullScore(), st = scoreStats(list), n = list.length;
@@ -1989,9 +2023,10 @@ function reportHTML(list){
   h += '</div>';
 
   // 2ページ目：設問ごとの分析（選択肢ごとの割合。正答の欄は緑、正答率50%未満の行は色付き）
+  const sus = suspectQuestions(list);
   if (s.nQ){
     h += `<div class="rp"><div class="rp-head"><h1>${title}　設問ごとの分析</h1><span>${st.n}人</span></div>
-      <p class="foot" style="margin:2mm 0">数字は各選択肢を選んだ人の割合（%）。太枠が正答（別解を含む）、網かけの行は正答率50%未満の問題です。「全員正解」にした問題は正答率100%になります。</p>
+      <p class="foot" style="margin:2mm 0">数字は各選択肢を選んだ人の割合（%）。太枠が正答（別解を含む）、網かけの行は正答率50%未満の問題です。「全員正解」にした問題は正答率100%になります。問の番号の※は、出題ミスの疑いがある問題です（下の一覧）。</p>
       <table style="font-size:${s.nC > 6 ? 8.5 : 9.5}pt"><thead><tr><th>問</th><th>正答</th><th>配点</th>${K.length ? '<th>観点</th>' : ''}<th class="l">正答率</th>`;
     for (let c = 0; c < s.nC; c++) h += `<th>${LAYOUT.labels[c]}</th>`;
     h += '<th>無回答</th><th>複数</th></tr></thead><tbody>';
@@ -2000,13 +2035,19 @@ function reportHTML(list){
       list.forEach(r => { const v = answerOf(r, q).value; if (v === -1) none++; else if (v === -2) multi++; else if (v < s.nC) cnt[v]++; });
       const rate = isScored(q) ? pct(list.filter(r => isCorrect(q, answerOf(r, q).value)).length, n) : null;
       const isKey = c => !s.allOk[q] && (c === s.key[q] || c === s.keyAlt[q]);
-      h += `<tr class="${rate !== null && rate < 50 ? 'hl' : ''}"><td>${q+1}</td><td>${keyLabel(q)}</td><td>${s.points[q]}</td>`
+      h += `<tr class="${rate !== null && rate < 50 ? 'hl' : ''}"><td>${sus.some(x => x.q === q) ? '<b>※</b>' : ''}${q+1}</td><td>${keyLabel(q)}</td><td>${s.points[q]}</td>`
         + (K.length ? `<td style="font-size:8pt">${escHtml(s.kanten[s.qKanten[q]] || '')}</td>` : '')
         + `<td class="l" style="white-space:nowrap">${rate === null ? '−' : `${bar(rate * 0.6, 'g')} ${rate}%`}</td>`
         + cnt.map((v, c) => `<td class="${isKey(c) ? 'cor' : ''}">${pct(v, n)}</td>`).join('')
         + `<td>${pct(none, n)}</td><td>${pct(multi, n)}</td></tr>`;
     }
-    h += '</tbody></table></div>';
+    h += '</tbody></table>';
+    // 出題ミスの疑い（v1.19）。白黒印刷でも分かるよう、※と文で示す
+    if (sus.length){
+      h += `<h2>出題ミスの疑いがある問題</h2><p class="foot" style="margin:0 0 1mm">答えの分かれ方から機械的に選んでいます。正答と問題文を確かめてください（問題がないこともあります）。</p><table><tbody>`
+        + sus.map(x => `<tr><td style="width:12mm"><b>※問${x.q + 1}</b></td><td style="width:14mm">正答 ${keyLabel(x.q)}</td><td class="l">${x.reasons.join('<br>')}</td></tr>`).join('') + '</tbody></table>';
+    } else if (n < 10) h += `<p class="foot">出題ミスの疑いは、10人以上のときに調べます。</p>`;
+    h += '</div>';
   }
 
   // 3ページ目以降：名簿（組・番号順。順位は同点なら同じ順位）
