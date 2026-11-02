@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.20
+ マークシート採点アプリ  ver 1.21
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -16,7 +16,7 @@
  【コードの構成】（上から順に並んでいます）
    1. LAYOUT   … 解答用紙の寸法（印刷と読み取りの両方がここを参照）
    2. OMR      … 画像からマークを読む処理
-   3. 状態管理 … 設定・結果の保持、自動保存、バックアップ
+   3. 状態管理 … 設定・結果の保持、データファイルへの自動保存（v1.21）、バックアップ
    4. 画面     … 各ステップの表示と操作
    5. 出力     … 採点結果のExcel（全員＋組ごとのシート）・CSV・観点別一覧のExcel（評定用）・個人票（生徒配布用）・模範解答（採点前でも印刷できる）・成績一覧と分析の印刷、バックアップ
 
@@ -170,6 +170,17 @@ textarea.note-input,textarea.model-input{padding:8px 10px;border:1px solid var(-
 .tour-card .tour-foot .note{margin-right:auto}
 .tour-block{position:fixed;inset:0;z-index:49}
 #practiceBar{background:#2F6FD6;color:#fff;font-size:14px}
+/* データファイル（v1.21）：保存できていないときの帯と、保存先を選ぶ画面 */
+#fileBar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 20px;font-size:14px;border-top:1px solid var(--line)}
+#fileBar.warn{background:var(--check-soft)}
+#fileBar.bad{background:var(--rose-soft)}
+#dlgFile{border:1px solid var(--line);border-radius:12px;padding:20px 24px;max-width:600px;color:var(--ink)}
+#dlgFile h2{margin:0 0 10px;font-size:19px}
+#dlgFile p{margin:0 0 8px;font-size:14px}
+.fchoice{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.fchoice .btn{text-align:left}
+.fchoice .btn small{display:block;font-weight:400;font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+.fchoice .btn.main small{color:#fff}
 #practiceBar .bar{padding:8px 20px}
 #practiceBar .btn{color:var(--ink)}
 
@@ -184,7 +195,7 @@ details.panel summary{cursor:pointer}
   @page{size:A4 portrait;margin:0}
   @page report{size:A4 portrait;margin:12mm 12mm 10mm}
   body{background:#fff}
-  header.app,main,.toast,#practiceBar,.tour-hole,.tour-card,.tour-block{display:none!important}
+  header.app,main,.toast,#practiceBar,#fileBar,#dlgFile,.tour-hole,.tour-card,.tour-block{display:none!important}
   #printArea{display:block}
   #printArea > svg{width:210mm;height:297mm;display:block}
 }
@@ -246,6 +257,7 @@ details.panel summary{cursor:pointer}
     <span class="save-state" id="saveState"></span>
     <span class="spacer"></span>
     <button class="btn small" id="btnTour" title="画面の使い方を順番に案内します">はじめての方へ</button>
+    <button class="btn small" id="btnDataFile" title="データを保存するファイルを開く・新しく作る">データファイル</button>
     <button class="btn small" id="btnBackup" title="設定と採点結果をファイルに保存します">バックアップを保存</button>
     <label class="btn small" title="保存したバックアップファイルを開きます">バックアップを開く<input type="file" id="fileBackup" accept=".json" hidden></label>
   </div>
@@ -257,6 +269,7 @@ details.panel summary{cursor:pointer}
     <button role="tab" data-step="help" class="help">使い方・引き継ぎ</button>
   </nav>
   <div id="practiceBar" hidden><div class="bar"><strong>練習中</strong><span>サンプルの用紙で試しています。ここでの操作は保存されず、今までのデータはそのまま残っています。</span><span class="spacer"></span><button class="btn small" id="btnPracticeEnd">練習を終えて元に戻す</button></div></div>
+  <div id="fileBar" hidden></div>
 </header>
 
 <main>
@@ -452,10 +465,12 @@ details.panel summary{cursor:pointer}
       <p>手で直した解答を機械の判定に戻したいときは、その問題の選択欄で「自動判定に戻す」を選びます。用紙ごとまとめて戻すボタンもあります。</p>
       <p>どちらも印刷画面で送信先を「PDFに保存」にすれば、PDFファイルとして残せます。印刷前に要確認や記述の未採点が残っていると、お知らせが出ます。記述の答えの画像は、読み取りをしたその画面でしか載りません（バックアップには画像が入らないため）。</p>
       <h3>データの保存について</h3>
-      <p>入力した内容は<strong>このPCのこのブラウザの中</strong>に自動で保存されます（ファイルとしては見えません）。次に同じPC・同じブラウザで開くと続きから使えますが、別のPCや別のブラウザ（Chrome と Edge）では見えません。また、残るのは<strong>今開いている1つのテストだけ</strong>で、別のテストのバックアップを開くと置き換わります。ブラウザの履歴削除などで消えることもあります。</p>
-      <p>そのため、テストごとに右上の<strong>「バックアップを保存」</strong>でファイルに残してください。ファイル名は日付とテスト名になります。共有サーバーなどに置けば、別のPCでも「バックアップを開く」で続きができます。</p>
+      <p>入力した内容は<strong>データファイル</strong>（<code>マークシート採点_データ_テスト名.json</code>）に自動で保存されます。<strong>1つのテストに1つのデータファイル</strong>です。右上の<strong>「データファイル」</strong>で、新しく作る・前のファイルを開くができます。校務共有サーバー（このアプリと同じフォルダなど）に置けば、別のPC・別のブラウザで開いても同じデータを使えます。生徒の解答と名簿が入るので、インターネットやクラウドから見える場所には置かないでください。</p>
+      <p>次に開いたときは、前回のデータファイルを自動で開きます。ブラウザが「このファイルの編集を許可しますか」とたずねたら、<strong>「ファイルを編集」（または「許可」）</strong>を押してください。別の画面や別のPCで同じファイルが書き換えられたときは、上書きせずに自動保存を止めて、画面の上に知らせます。</p>
+      <p>データファイルを決めていないときは、これまでどおり<strong>このPCのこのブラウザの中</strong>にだけ保存されます（別のPC・ブラウザからは見えず、履歴削除で消えることもあります）。データファイルを使っているときも、このブラウザの中に控えを残しています。</p>
+      <p>右上の<strong>「バックアップを保存」</strong>では、日付とテスト名の付いたファイルに今の内容を残せます。データファイルをまちがえて消したり上書きしたりしたときに戻せるよう、採点が終わったら保存しておくと安心です。</p>
       <p>バックアップには設定と採点結果が入ります。スキャン画像は容量が大きいので入りません。元のPDFは校内の決められた場所に保管してください。</p>
-      <p>同じテストを別のクラスでも使うときは、バックアップを開いて「読み取り結果をすべて消す」を押せば、正答と配点だけを使い回せます。</p>
+      <p>同じテストを別のクラス・別の年度でも使うときは、そのテストのデータファイルを開き、「データファイル」→「新しいデータファイルを作る」で別のファイルにしてから「読み取り結果をすべて消す」を押せば、正答と配点だけを使い回せます（前のファイルはそのまま残ります）。</p>
       <h3>うまく読めないとき</h3>
       <ul>
         <li>「位置合わせマークが見つかりません」→ 四隅の黒い四角が欠けていないか、用紙が大きく傾いていないか確認します。</li>
@@ -472,12 +487,13 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.21（データをデータファイル（.json）に自動で保存するようにした。別のPC・ブラウザでも同じデータを使える。用紙は1.8と同じ）<br>1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
 
 <div id="printArea"></div>
+<dialog id="dlgFile"><div id="fileBody"></div></dialog>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -728,17 +744,34 @@ function normalizeSettings(){
 }
 let saveTimer = null;
 let practiceSnapshot = null;   // 練習モード中は、練習前の状態（JSON文字列）が入る。練習中は自動保存しない
+let lsOk = true, lsSavedAt = 0;
+/** 変更のたびに呼ぶ。ブラウザの中（控え）に書き、データファイルを開いていればそこにも書く（v1.21） */
 function autosave(){
   if (practiceSnapshot) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(state));
-      $('#saveState').textContent = 'このPCに自動保存しました ' + new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
-    } catch (e) {
-      $('#saveState').textContent = '自動保存できません。バックアップを保存してください';
-    }
+    lsSave();
+    if (DF.state === 'ok') dfWrite(); else setUnsaved(true);
+    showSaveState();
   }, 400);
+}
+function lsSave(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); lsOk = true; lsSavedAt = Date.now(); }
+  catch (e) { lsOk = false; }
+}
+/** 保存するデータ（バックアップとデータファイルで同じ形。kind だけ違う） */
+function stateData(kind){
+  return { app: 'marksheet-grader', kind, version: 1, savedAt: new Date().toISOString(), settings: state.settings,
+    results: state.results.map(r => Object.assign({}, r)), roster: state.roster };   // roster は v1.6 から
+}
+/** バックアップ・データファイルの中身を今のデータにする */
+function loadData(d){
+  // v1.12 までのバックアップは app が 'marksheet-saiten'。どちらも読めるようにする。
+  if (d.app !== 'marksheet-grader' && d.app !== 'marksheet-saiten') throw new Error('このアプリのデータではありません');
+  state.settings = Object.assign({ testName: '', note: '', nQ: 20, nC: 4, key: [], keyText: [], points: [], threshold: 0.35, written: [], writtenSize: 3 }, d.settings);
+  state.results = d.results || []; if (Array.isArray(d.roster) && d.roster.length) state.roster = d.roster;   // 名簿の無い古いバックアップなら今の名簿を残す
+  normalizeSettings(); selected = null; updateRosterState();
+  initInputs(); renderSettings();
 }
 function restore(){
   try {
@@ -2125,10 +2158,8 @@ $('#btnReport').onclick = () => {
 };
 
 $('#btnBackup').onclick = () => {
-  const data = { app: 'marksheet-grader', version: 1, savedAt: new Date().toISOString(), settings: state.settings,
-    results: state.results.map(r => Object.assign({}, r)), roster: state.roster };   // roster は v1.6 から
   // 共通ルールに合わせ「アプリ名_バックアップ_日付」で始める(テスト名も付けて、どのテストか分かるようにする)
-  downloadFile(backupFileName(), JSON.stringify(data), 'application/json');
+  downloadFile(backupFileName(), JSON.stringify(stateData('backup')), 'application/json');
   toast('バックアップを保存しました');
 };
 $('#fileBackup').onchange = async e => {
@@ -2136,13 +2167,12 @@ $('#fileBackup').onchange = async e => {
   if (practiceSnapshot){ toast('練習中はバックアップを開けません。先に「練習を終えて元に戻す」を押してください'); return; }
   try {
     const d = JSON.parse(await f.text());
-    // v1.12 までのバックアップは app が 'marksheet-saiten'。どちらも読めるようにする。
     if (d.app !== 'marksheet-grader' && d.app !== 'marksheet-saiten') throw new Error('このアプリのバックアップファイルではありません');
-    if (state.results.length && !confirm('今の内容をバックアップの内容に置き換えます。よろしいですか？')) return;
-    state.settings = Object.assign({ testName: '', note: '', nQ: 20, nC: 4, key: [], keyText: [], points: [], threshold: 0.35, written: [], writtenSize: 3 }, d.settings);
-    state.results = d.results || []; if (Array.isArray(d.roster) && d.roster.length) state.roster = d.roster;   // 名簿の無い古いバックアップなら今の名簿を残す
-    normalizeSettings(); selected = null; updateRosterState();
-    initInputs(); renderSettings(); autosave(); showStep(1);
+    // データファイルを開いているときは、そのファイルの中身も置き換わる（別のテストなら、先に「新しいデータファイルを作る」）
+    if (state.results.length && !confirm(DF.state === 'ok'
+      ? `今の内容をバックアップの内容に置き換えます。\nデータファイル「${DF.handle.name}」の中身も置き換わります。\n（今のデータファイルを残したいときは、キャンセルして「データファイル」→「新しいデータファイルを作る」を先にしてください）\nよろしいですか？`
+      : '今の内容をバックアップの内容に置き換えます。よろしいですか？')) return;
+    loadData(d); autosave(); showStep(1);
     toast('バックアップを開きました');
   } catch (err) { alert('開けませんでした：' + err.message); }
 };
@@ -2289,6 +2319,7 @@ function startPractice(){
   normalizeSettings(); selected = null; wOpen = false; $('#scanLog').innerHTML = '';
   initInputs(); renderSettings();
   $('#practiceBar').hidden = false; $('#practiceScan').hidden = false;
+  renderFileBar(); showSaveState();
   showStep(1);
   return true;
 }
@@ -2302,6 +2333,7 @@ function endPractice(){
   normalizeSettings(); selected = null; wOpen = false; $('#scanLog').innerHTML = '';
   initInputs(); renderSettings();
   $('#practiceBar').hidden = true; $('#practiceScan').hidden = true;
+  renderFileBar(); showSaveState();
   showStep(1); toast('練習を終えて、元のデータに戻しました');
 }
 $('#btnPracticeEnd').onclick = () => { if (confirm('練習を終えて、練習前のデータに戻しますか？（練習中の操作は消えます）')) endPractice(); };
@@ -2336,7 +2368,8 @@ const TOUR = [
   { step: 4, sel: '#btnSlips', up: '.row', title: '出力', text: '<strong>採点結果のExcel</strong>（全員と組ごとのシートが1つのファイルに入る）、CSV、<strong>観点別の一覧</strong>（評定の表に貼り付ける用のExcel）、<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>模範解答</strong>（採点前でも印刷できる）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）を出せます。印刷画面で「PDFに保存」も選べます。' },
   { step: 4, sel: '#slipOpts', title: '個人票に載せる項目', text: '平均点・組の平均点・順位・偏差値・得点分布などを、個人票に載せるかどうかここで選べます。はじめは平均点だけが載ります。' },
   { step: 4, sel: '#rosterState', up: '.row', title: '名簿（氏名）', text: '組・番号・氏名の列のCSVを読み込むと、個人票や一覧に氏名が入ります。4列目にフリガナを入れると、個人票に出ます。一度読み込めば次のテストでも使えます。' },
-  { step: 4, sel: '#btnBackup', title: 'バックアップを忘れずに', text: 'データはこのPCのブラウザに自動保存されますが、消えることもあります。テストごとに「バックアップを保存」でファイルに残してください。' },
+  { step: 4, sel: '#btnDataFile', title: 'データの保存先（データファイル）', text: '正答・読み取り結果・名簿は、データファイル（.json）に自動で保存されます。「データファイル」で、テストごとにファイルを作る・開くができます。校務共有サーバーに置けば、別のPCでも続きができます。' },
+  { step: 4, sel: '#btnBackup', title: 'バックアップ', text: '「バックアップを保存」で、日付入りのファイルにも残せます。データファイルをまちがえて消したときに戻せるよう、採点が終わったら保存しておくと安心です。' },
   { step: 'help', title: '案内はここまでです', text: () => practiceSnapshot
       ? 'このあと「3 読み取り」の青いボタンでサンプルを読み取り、「4 結果の確認と出力」で黄色の欄を直したり、記述を採点したり、個人票を印刷プレビューしたりしてみてください。<br>終わったら、上の青い帯の<strong>「練習を終えて元に戻す」</strong>を押します。'
       : 'くわしい説明はこの「使い方・引き継ぎ」ページにあります。<br>印刷もスキャンもせずに試せる<strong>「サンプルで練習」</strong>もおすすめです。' },
@@ -2422,9 +2455,199 @@ function placeTour(){
 $('#btnTour').onclick = () => startTour(0);
 $('#btnTour2').onclick = () => startTour(0);
 
+/* ---- データファイル（.json）への自動保存（v1.21） ----
+   なぜ：ブラウザの中（localStorage）だけの保存は、PC・ブラウザ（Chrome と Edge）・アカウントごとに別々で、
+   「開く人・開くPCによって中身が違う」「履歴削除で消える」混乱のもとになるため。テスト問題メーカーと同じ作りにした。
+   - Chrome/Edge のファイルへの直接保存（File System Access API）で、先生が選んだ1つのファイルに、変更のたびに上書きする。
+   - 中身はバックアップと同じ形（kind だけ 'data'）。データファイルも「バックアップを開く」で開ける。
+   - このアプリは今開いているテスト1つ分を持つので、「1つのテストに1つのデータファイル」で使う（別のテストは別のファイル）。
+   - 選んだファイルの目印は IndexedDB に覚える（localStorage には入らないため）。開き直すと、ブラウザの決まりで
+     「編集を許可しますか」をもう一度聞かれることがあり、ボタンを押してもらう必要がある。
+   - 別の画面・別のPCが同じファイルを書き換えていたら（ファイルの更新日時で判断）、上書きせずに止めて知らせる。
+   - localStorage は、データファイルを使っていないとき・保存できないときの控えとして、これまでどおり書く。
+   - 生徒の解答・名簿が入るので、データファイルは校務共有サーバーか先生のPCに置く（README に明記）。 */
+const DATA_FILE_PREFIX = 'マークシート採点_データ';
+const FILE_TYPES = [{ description: 'マークシート採点のデータ', accept: { 'application/json': ['.json'] } }];
+const UNSAVED_KEY = 'marksheet-grader-unsaved';   // データファイルに書いていない変更がこのブラウザの中にあるか
+// DF.state：unsupported（このブラウザは非対応）| none（未設定）| need（許可待ち）| ok | error（保存失敗）| conflict（別の所で変更された）
+const DF = { handle: null, state: 'none', lastMod: 0, writing: false, again: false, err: '', savedAt: 0 };
+const fsSupported = () => 'showSaveFilePicker' in window && 'showOpenFilePicker' in window && 'indexedDB' in window;
+function idb(mode, fn){
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open('marksheet-grader', 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+    rq.onerror = () => rej(rq.error);
+    rq.onsuccess = () => {
+      const db = rq.result, tx = db.transaction('kv', mode), r = fn(tx.objectStore('kv'));
+      tx.oncomplete = () => { db.close(); res(r.result); };
+      tx.onerror = () => { db.close(); rej(tx.error); };
+    };
+  });
+}
+const idbGet = k => idb('readonly', s => s.get(k));
+const idbSet = (k, v) => idb('readwrite', s => s.put(v, k));
+function setUnsaved(v){ try { v ? localStorage.setItem(UNSAVED_KEY, '1') : localStorage.removeItem(UNSAVED_KEY); } catch (e) { /* 使えなくても続ける */ } }
+function isUnsaved(){ try { return !!localStorage.getItem(UNSAVED_KEY); } catch (e) { return false; } }
+function hasContent(){ const s = state.settings; return state.results.length > 0 || !!s.testName || s.key.some(k => k !== null); }
+function dataFileName(){ return `${DATA_FILE_PREFIX}_${(state.settings.testName || '無題').replace(/[\\/:*?"<>|]/g, '_')}.json`; }
+
+/* データファイルに書く。書いている間に変更が来たら、終わってからもう一度書く */
+async function dfWrite(){
+  if (DF.state !== 'ok' || practiceSnapshot) return;
+  if (DF.writing){ DF.again = true; return; }
+  DF.writing = true; showSaveState();
+  try {
+    do {
+      DF.again = false;
+      const f = await DF.handle.getFile();
+      if (DF.lastMod && f.lastModified !== DF.lastMod){ DF.state = 'conflict'; break; }
+      const w = await DF.handle.createWritable();
+      await w.write(JSON.stringify(stateData('data'))); await w.close();
+      DF.lastMod = (await DF.handle.getFile()).lastModified; DF.savedAt = Date.now();
+    } while (DF.again);
+    if (DF.state === 'ok') setUnsaved(false);
+  } catch (e) { console.warn(e); DF.state = 'error'; DF.err = e.message || String(e); }
+  if (DF.state !== 'ok') setUnsaved(true);
+  DF.writing = false; renderFileBar(); showSaveState();
+}
+
+/* 許可済みのファイルを開いて、その中身を今のデータにする（空のファイルなら今の内容を書く）。開かなかったら false */
+async function dfOpenHandle(hd){
+  if (practiceSnapshot) endPractice();   // 本当のデータを開くので、練習は終える
+  const f = await hd.getFile(), text = await f.text();
+  let d = null;
+  if (text.trim()){
+    d = JSON.parse(text);
+    if (d.app !== 'marksheet-grader' && d.app !== 'marksheet-saiten') throw new Error('マークシート採点のデータではありません');
+  }
+  // データファイルに書いていない内容がこのブラウザの中にあるとき、黙って置き換えない
+  if (d && isUnsaved() && hasContent()){
+    if (!confirm(`このブラウザの中に、データファイルに保存していない内容があります（テスト名：${state.settings.testName || '無題'}）。\n`
+      + `データファイル「${hd.name}」を開くと、この内容は置き換わります。\n\n`
+      + '［OK］念のため、今の内容をバックアップとして書き出してから開く\n［キャンセル］開かない')) return false;
+    downloadFile(backupFileName(), JSON.stringify(stateData('backup')), 'application/json');
+  }
+  DF.handle = hd; DF.lastMod = f.lastModified; DF.state = 'ok'; DF.err = ''; DF.savedAt = f.lastModified;
+  try { await idbSet('dataFile', hd); } catch (e) { console.warn(e); }
+  if (d){
+    loadData(d); lsSave(); setUnsaved(false); showStep(1);
+  } else await dfWrite();
+  renderFileBar(); showSaveState();
+  return true;
+}
+function dfFail(e, what){
+  console.warn(e);
+  alert(`${what}。\n\n理由：${e.message || e}\n\n・Chrome か Edge で開いているか確かめてください。\n・ファイルが別の場所に移されていたら、「データファイル」から選び直してください。\n・入力した内容は、このブラウザの中に控えとして残っています。`);
+}
+async function askPerm(hd){ return (await hd.queryPermission({ mode: 'readwrite' })) === 'granted' || (await hd.requestPermission({ mode: 'readwrite' })) === 'granted'; }
+const NOT_ALLOWED = '編集が許可されなかったため、データファイルに保存できません。\nもう一度ボタンを押して、「ファイルを編集」（または「許可」）を選んでください。';
+async function dfPickOpen(){
+  try {
+    const [hd] = await showOpenFilePicker({ id: 'marksheet-grader', types: FILE_TYPES, multiple: false });
+    if (/バックアップ/.test(hd.name) && !confirm(`「${hd.name}」はバックアップのファイルのようです。\nこのファイルをデータファイルとして使い、これから上書きしていきますか？\n（中身を見たいだけなら、キャンセルして右上の「バックアップを開く」を使ってください）`)) return;
+    if (!await askPerm(hd)){ alert(NOT_ALLOWED); return; }
+    if (await dfOpenHandle(hd)){ closeFileDialog(); toast(`データファイル「${hd.name}」を開きました`); }
+  } catch (e) { if (e.name !== 'AbortError') dfFail(e, 'データファイルを開けませんでした'); }
+}
+async function dfPickCreate(){
+  try {
+    const hd = await showSaveFilePicker({ id: 'marksheet-grader', suggestedName: dataFileName(), types: FILE_TYPES });
+    const f = await hd.getFile();
+    if (f.size > 0){   // 既にあるデータファイルを選んだ：消さずに開くか聞く
+      let isData = false; try { const a = JSON.parse(await f.text()).app; isData = a === 'marksheet-grader' || a === 'marksheet-saiten'; } catch (e) { /* 読めなければ上書き */ }
+      if (isData && confirm(`「${hd.name}」には、すでにデータが入っています。\n［OK］このファイルを開く（おすすめ）\n［キャンセル］今の画面の内容で上書きする`)){
+        if (await dfOpenHandle(hd)){ closeFileDialog(); toast(`データファイル「${hd.name}」を開きました`); }
+        return;
+      }
+    }
+    if (practiceSnapshot) endPractice();
+    DF.handle = hd; DF.lastMod = 0; DF.state = 'ok'; DF.err = '';
+    try { await idbSet('dataFile', hd); } catch (e) { console.warn(e); }
+    await dfWrite(); closeFileDialog();
+    toast(`データファイル「${hd.name}」を作りました。これからは自動でここに保存します`);
+  } catch (e) { if (e.name !== 'AbortError') dfFail(e, 'データファイルを作れませんでした'); }
+}
+async function dfReopen(){   // 前回のファイルを開き直す（許可待ち・別の所で変更されたとき）
+  try {
+    if (!await askPerm(DF.handle)){ alert(NOT_ALLOWED); return; }
+    if (DF.state === 'conflict') setUnsaved(false);   // 読み直すと決めたので、この画面の内容は使わない
+    if (await dfOpenHandle(DF.handle)){ closeFileDialog(); toast(`データファイル「${DF.handle.name}」を開きました`); }
+  } catch (e) { dfFail(e, 'データファイルを開けませんでした'); DF.state = 'need'; renderFileBar(); }
+}
+async function dfRetry(){   // 保存に失敗したあと、もう一度書く
+  try { if (!await askPerm(DF.handle)){ alert(NOT_ALLOWED); return; } DF.state = 'ok'; DF.err = ''; await dfWrite(); }
+  catch (e) { dfFail(e, 'データファイルに保存できませんでした'); }
+}
+function dfOverwrite(){
+  if (!confirm('データファイルを、この画面の内容で上書きします。\n別の画面・別のパソコンで直した内容は、データファイルから消えます。\n（残したいときは、キャンセルして「ファイルを読み直す」を押してください）\n上書きしますか？')) return;
+  DF.lastMod = 0; DF.state = 'ok'; dfWrite();
+}
+async function dfInit(){
+  if (!fsSupported()){ DF.state = 'unsupported'; renderFileBar(); showSaveState(); return; }
+  let hd = null; try { hd = await idbGet('dataFile'); } catch (e) { console.warn(e); }
+  if (!hd){ DF.state = 'none'; renderFileBar(); showSaveState(); return; }
+  DF.handle = hd;
+  try { if ((await hd.queryPermission({ mode: 'readwrite' })) === 'granted' && await dfOpenHandle(hd)) return; } catch (e) { console.warn(e); }
+  DF.state = 'need'; renderFileBar(); showSaveState(); openFileDialog();
+}
+
+/* 右上の保存の表示 */
+function showSaveState(){
+  const t = ts => new Date(ts).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  const el = $('#saveState');
+  if (practiceSnapshot) el.textContent = '練習中は保存しません';
+  else if (DF.state === 'ok') el.textContent = DF.writing ? 'データファイルに保存しています…' : `データファイル「${DF.handle.name}」に保存${DF.savedAt ? 'しました ' + t(DF.savedAt) : 'します'}`;
+  else if (!lsOk) el.textContent = '自動保存できません。バックアップを保存してください';
+  else el.textContent = lsSavedAt ? 'このブラウザの中に保存しました ' + t(lsSavedAt) : '';
+}
+/* 上部の帯：データファイルに保存できていないときだけ出す */
+function renderFileBar(){
+  const bar = $('#fileBar'), nm = DF.handle ? `「${DF.handle.name}」` : '';
+  const set = (cls, msg, btns) => {
+    bar.hidden = false; bar.className = cls; bar.innerHTML = '';
+    const span = document.createElement('span'); span.textContent = msg; bar.appendChild(span);
+    btns.forEach(([label, fn, main]) => { const b = document.createElement('button'); b.className = 'btn small' + (main ? ' main' : ''); b.textContent = label; b.onclick = fn; bar.appendChild(b); });
+  };
+  if (DF.state === 'ok' || practiceSnapshot){ bar.hidden = true; return; }
+  if (DF.state === 'need') set('warn', `⚠ データファイル${nm}をまだ開いていません。今の画面は、このブラウザの中の控えです。`, [['データファイルを開く', dfReopen, 1]]);
+  else if (DF.state === 'none') set('warn', '⚠ このブラウザの中にだけ保存しています（別のブラウザ・パソコンからは見えません）。', [['保存先のファイルを決める', () => openFileDialog(), 1]]);
+  else if (DF.state === 'error') set('bad', `⚠ データファイル${nm}に保存できませんでした（${DF.err}）。このブラウザの中には控えがあります。`, [['もう一度保存', dfRetry, 1], ['保存先を変える', () => openFileDialog(true)]]);
+  else if (DF.state === 'conflict') set('bad', `⚠ データファイル${nm}が、別の画面か別のパソコンで変更されました。上書きしないよう、自動保存を止めています。`, [['ファイルを読み直す', dfReopen, 1], ['この画面の内容で上書き', dfOverwrite]]);
+  else set('warn', '⚠ このブラウザはファイルへの保存に対応していません。Chrome か Edge で開いてください（今はこのブラウザの中にだけ保存しています）。', []);
+}
+/* 保存先を選ぶ画面。change=true は「保存先を変える」・右上の「データファイル」から */
+function openFileDialog(change){
+  if (DF.state === 'unsupported'){ alert('このブラウザはファイルへの保存に対応していません。Chrome か Edge で開いてください。'); return; }
+  const dlg = $('#dlgFile'), body = $('#fileBody');
+  const choice = (label, sub, fn, main) => `<button class="btn${main ? ' main' : ''}" data-f="${fn}">${label}<small>${sub}</small></button>`;
+  const cur = DF.handle ? escHtml(DF.handle.name) : '';
+  let h;
+  if (DF.state === 'need' && !change){
+    h = `<h2>データファイルを開きます</h2><p>前回使ったデータファイル「${cur}」を開きます。</p>`
+      + '<p>下のボタンを押すと、ブラウザが「このファイルの編集を許可しますか？」のようにたずねます。<b>「ファイルを編集」（または「許可」）</b>を押してください。</p>'
+      + '<div class="fchoice">' + choice('データファイルを開く', `「${cur}」を開いて、続きから使います。`, 'reopen', 1)
+      + choice('別のデータファイルを開く', '別のテストのデータファイルを使うとき。', 'open')
+      + choice('開かずに使う', 'このブラウザの中の控えで作業します（データファイルには保存されません）。', 'close') + '</div>';
+  } else {
+    h = `<h2>データの保存先（データファイル）</h2>`
+      + (DF.state === 'ok' ? `<p>今は「<b>${cur}</b>」に自動で保存しています。</p>` : '')
+      + '<p>正答・配点・読み取り結果・名簿は、データファイル（.json）に自動で保存します。<b>1つのテストに1つのデータファイル</b>を作ります。</p>'
+      + '<p>データファイルは<b>校務共有サーバー</b>（このアプリと同じフォルダなど）か、このパソコンに置きます。生徒の解答と名簿が入るので、インターネットやクラウドから見える場所には置かないでください。</p>'
+      + '<div class="fchoice">' + choice('データファイルを開く', '前に作ったテストの続きをするとき。', 'open', 1)
+      + choice('新しいデータファイルを作る', '別のテストを始めるとき・はじめて使うとき。今の画面の内容が入ります（あとで正答を直したり、「読み取り結果をすべて消す」を押したりしても、前のファイルは変わりません）。', 'create')
+      + choice(change ? 'やめる' : 'あとで決める', change ? '今のまま変えません。' : '今はこのブラウザの中にだけ保存します（別のブラウザ・パソコンからは見えません）。', 'close') + '</div>';
+  }
+  body.innerHTML = h;
+  body.querySelectorAll('[data-f]').forEach(b => b.onclick = { reopen: dfReopen, open: dfPickOpen, create: dfPickCreate, close: closeFileDialog }[b.dataset.f]);
+  if (!dlg.open) dlg.showModal();
+}
+function closeFileDialog(){ const d = $('#dlgFile'); if (d.open) d.close(); }
+$('#btnDataFile').onclick = () => openFileDialog(true);
+
 /* ---- 起動 ---- */
 function initInputs(){ document.querySelectorAll('.note-input').forEach(el => el.value = state.settings.note || ''); updateNoteCount(); updateRosterState(); $('#th').value = state.settings.threshold; $('#thVal').textContent = '現在 ' + Math.round(state.settings.threshold*100); renderSlipOpts(); updateKeySource(); }
 restore(); initInputs(); renderSettings();
+dfInit();   // データファイルを開く（前に使ったファイルがあれば。許可が要るときは画面で聞く）
 // 初めて開いたとき（まだ何も入力していないとき）は画面ガイドを出す
 try { if (!localStorage.getItem(TOUR_KEY) && !localStorage.getItem(OLD_TOUR_KEY) && !state.results.length && !state.settings.testName) setTimeout(() => startTour(0), 500); } catch (e) { /* 使えなければ出さない */ }
 </script>
