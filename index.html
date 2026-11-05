@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.26
+ マークシート採点アプリ  ver 1.27
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -16,7 +16,7 @@
  【コードの構成】（上から順に並んでいます）
    1. LAYOUT   … 解答用紙の寸法（印刷と読み取りの両方がここを参照）
    2. OMR      … 画像からマークを読む処理
-   3. 状態管理 … 設定・結果の保持、データファイルへの自動保存（v1.21。v1.26 からブラウザの中には保存しない）、バックアップ
+   3. 状態管理 … 設定・結果の保持、データファイルへの自動保存（v1.21。v1.26 からブラウザの中には保存しない。v1.27 から保存するフォルダを選び、毎日のバックアップを自動で残す）
    4. 画面     … 各ステップの表示と操作
    5. 出力     … 採点結果のExcel（全員＋組ごとのシート）・CSV・観点別一覧のExcel（評定用）・個人票（生徒配布用）・模範解答（採点前でも印刷できる）・成績一覧と分析の印刷、バックアップ
 
@@ -181,6 +181,7 @@ textarea.note-input,textarea.model-input{padding:8px 10px;border:1px solid var(-
 .fchoice .btn{text-align:left}
 .fchoice .btn small{display:block;font-weight:400;font-size:12.5px;color:var(--ink-soft);margin-top:2px}
 .fchoice .btn.main small{color:#fff}
+.fchoice.flist{max-height:300px;overflow:auto;padding-right:4px}
 #practiceBar .bar{padding:8px 20px}
 #practiceBar .btn{color:var(--ink)}
 
@@ -262,9 +263,7 @@ details.panel summary{cursor:pointer}
     <span class="save-state" id="saveState"></span>
     <span class="spacer"></span>
     <button class="btn small" id="btnTour" title="画面の使い方を順番に案内します">はじめての方へ</button>
-    <button class="btn small" id="btnDataFile" title="データを保存するファイルを開く・新しく作る">保存・開く</button>
-    <button class="btn small" id="btnBackup" title="設定と採点結果をファイルに保存します">バックアップを保存</button>
-    <label class="btn small" title="保存したバックアップファイルから、内容を元に戻します">バックアップから戻す<input type="file" id="fileBackup" accept=".json" hidden></label>
+    <button class="btn small" id="btnDataFile" title="テストのファイルを開く・新しく作る・前の日の状態に戻す">保存・開く</button>
   </div>
   <nav class="steps" role="tablist">
     <button role="tab" data-step="1" aria-selected="true"><b>1</b>正答と配点</button>
@@ -471,14 +470,14 @@ details.panel summary{cursor:pointer}
       <p>手で直した解答を機械の判定に戻したいときは、その問題の選択欄で「自動判定に戻す」を選びます。用紙ごとまとめて戻すボタンもあります。</p>
       <p>どちらも印刷画面で送信先を「PDFに保存」にすれば、PDFファイルとして残せます。印刷前に要確認や記述の未採点が残っていると、お知らせが出ます。記述の答えの画像は、読み取りをしたその画面でしか載りません（バックアップには画像が入らないため）。</p>
       <h3>データの保存について</h3>
-      <p>入力した内容は<strong>データファイル</strong>（<code>マークシート採点_データ_テスト名.json</code>）に自動で保存されます。<strong>1つのテストに1つのファイル</strong>です。右上の<strong>「保存・開く」</strong>から、次の2つを選びます。</p>
+      <p>はじめに<strong>「保存するフォルダ」</strong>を選びます（校務共有サーバーの、このアプリと同じフォルダなど）。入力した内容は、そのフォルダの中の<strong>データファイル</strong>（<code>マークシート採点_データ_2年_テスト名.json</code>）に自動で保存されます。<strong>1つの学年の1つのテストに1つのファイル</strong>です（名簿もテストごとに入ります）。右上の<strong>「保存・開く」</strong>から選びます。</p>
       <ul><li><strong>新規作成</strong>：新しいテストを始めるとき。今の画面の内容（正答・名簿など）を、新しいファイルに保存します。はじめて正答を入れたときにも、この画面が出ます。</li>
-      <li><strong>開く</strong>：前に保存したテストの続きをするとき。ファイルを選びます（前回のファイルがある場所から始まります）。</li></ul>
-      <p>ファイルを決めるまでは、<strong>どこにも保存されません</strong>（画面の上に知らせが出て、タブを閉じようとすると確認が出ます）。ブラウザの中にも残しません（共用のPCに生徒のデータが残らないように。v1.26 から）。</p>
-      <p>データファイルを開いたまま<strong>別のテストの正答を読み込むと</strong>、前のテストのファイルには上書きせず、「新規作成してください」の画面が出ます（同じテストの正答を読み込み直したときは、そのまま同じファイルに保存します）。校務共有サーバー（このアプリと同じフォルダなど）に置けば、別のPC・別のブラウザで開いても同じデータを使えます。生徒の解答と名簿が入るので、インターネットやクラウドから見える場所には置かないでください。</p>
-      <p>次に開いたときは「開く」を押して、前回のファイルを選びます。ブラウザが「このファイルの編集を許可しますか」とたずねたら、<strong>「ファイルを編集」（または「許可」）</strong>を押してください。別の画面や別のPCで同じファイルが書き換えられたときは、上書きせずに自動保存を止めて、画面の上に知らせます（「変更を読み込む」か「この画面の内容で上書き」を選びます）。</p>
-      <p>右上の<strong>「バックアップを保存」</strong>では、日付とテスト名の付いたファイルに今の内容を残せます。データファイルをまちがえて消したり上書きしたりしたときに戻せるよう、採点が終わったら保存しておくと安心です。</p>
-      <p>バックアップには設定と採点結果が入ります。スキャン画像は容量が大きいので入りません。元のPDFは校内の決められた場所に保管してください。</p>
+      <li><strong>開く</strong>：前に保存したテストの続きをするとき。フォルダの中のテストの一覧から選びます。</li>
+      <li><strong>前の日の状態に戻す</strong>：まちがえて消した・直したとき。毎日、その日の最後の状態を、同じフォルダの<code>バックアップ</code>フォルダに自動で残しています（30日分）。戻したい日を選びます。</li></ul>
+      <p>ファイルを作るまでは、<strong>どこにも保存されません</strong>（画面の上に知らせが出て、タブを閉じようとすると確認が出ます）。ブラウザの中にも残しません（共用のPCに生徒のデータが残らないように）。</p>
+      <p>データファイルを開いたまま<strong>別のテストの正答を読み込むと</strong>、前のテストのファイルには上書きせず、「新規作成してください」の画面が出ます（同じテストの正答を読み込み直したときは、そのまま同じファイルに保存します）。生徒の解答と名簿が入るので、インターネットやクラウドから見える場所のフォルダは選ばないでください。</p>
+      <p>次に開いたときは、前回のテストを自動で開きます。ブラウザが「このフォルダのファイルの表示と編集を許可しますか」のようにたずねたら、<strong>「ファイルを編集」（または「許可」）</strong>を押してください。別の画面や別のPCで同じファイルが書き換えられたときは、上書きせずに自動保存を止めて、画面の上に知らせます（「変更を読み込む」か「この画面の内容で上書き」を選びます）。</p>
+      <p>スキャン画像はファイルに入りません（容量が大きいため）。元のPDFは校内の決められた場所に保管してください。</p>
       <p>同じテストを別のクラス・別の年度でも使うときは、そのテストのデータファイルを開き、「保存・開く」→「新規作成」で別のファイルにしてから「読み取り結果をすべて消す」を押せば、正答と配点だけを使い回せます（前のファイルはそのまま残ります）。</p>
       <h3>うまく読めないとき</h3>
       <ul>
@@ -496,7 +495,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.26（ブラウザの中に控えを残すのをやめ、データはファイルにだけ保存する。ボタンを「保存・開く」「開く」「新規作成」「バックアップから戻す」にした。ファイルに保存していない内容があるうちは、画面の上に知らせ、タブを閉じるときに確認を出す。用紙は1.8と同じ）<br>1.25（名簿を読み込むと、画面に名簿の一覧と、名簿にない組・番号の用紙を出す。名簿のCSVは1行目の見出し（学年・組・番号・氏名・フリガナ）から列を見分け、「学年・組・番号・氏名」の順や「1組」「5番」の書き方でも読める。データファイルを開く前に別のテストの正答を読み込んだときも、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.24（解答用紙の見出しに必ず「解答用紙」を入れる。印刷の画面で「PDFに保存」したときのファイル名を、印刷物の見出しと同じにする。読み取る位置は1.8と同じ）<br>1.23（別のテストの正答を読み込んだときは、前のテストのデータファイルに上書きせず、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.22（テスト問題メーカーの採点用JSONから、学年・題名（テスト名）・注意書き（解答用紙に載せる文）も入れるようにした。長いテスト名は解答用紙の見出しを自動で小さくする。用紙は1.8と同じ）<br>1.21（データをデータファイル（.json）に自動で保存するようにした。別のPC・ブラウザでも同じデータを使える。用紙は1.8と同じ）<br>1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.27（はじめに「保存するフォルダ」を選び、その中にテストごとのファイルを作る形にした。「開く」はフォルダの中のテストの一覧から選ぶ。毎日のバックアップを同じフォルダの「バックアップ」に自動で残し（30日分）、「前の日の状態に戻す」で戻せる。手動のバックアップのボタンはやめた。用紙は1.8と同じ）<br>1.26（ブラウザの中に控えを残すのをやめ、データはファイルにだけ保存する。ボタンを「保存・開く」「開く」「新規作成」「バックアップから戻す」にした。ファイルに保存していない内容があるうちは、画面の上に知らせ、タブを閉じるときに確認を出す。用紙は1.8と同じ）<br>1.25（名簿を読み込むと、画面に名簿の一覧と、名簿にない組・番号の用紙を出す。名簿のCSVは1行目の見出し（学年・組・番号・氏名・フリガナ）から列を見分け、「学年・組・番号・氏名」の順や「1組」「5番」の書き方でも読める。データファイルを開く前に別のテストの正答を読み込んだときも、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.24（解答用紙の見出しに必ず「解答用紙」を入れる。印刷の画面で「PDFに保存」したときのファイル名を、印刷物の見出しと同じにする。読み取る位置は1.8と同じ）<br>1.23（別のテストの正答を読み込んだときは、前のテストのデータファイルに上書きせず、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.22（テスト問題メーカーの採点用JSONから、学年・題名（テスト名）・注意書き（解答用紙に載せる文）も入れるようにした。長いテスト名は解答用紙の見出しを自動で小さくする。用紙は1.8と同じ）<br>1.21（データをデータファイル（.json）に自動で保存するようにした。別のPC・ブラウザでも同じデータを使える。用紙は1.8と同じ）<br>1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -775,7 +774,8 @@ function loadData(d){
   // v1.12 までのバックアップは app が 'marksheet-saiten'。どちらも読めるようにする。
   if (d.app !== 'marksheet-grader' && d.app !== 'marksheet-saiten') throw new Error('このアプリのデータではありません');
   state.settings = Object.assign({ testName: '', note: '', nQ: 20, nC: 4, key: [], keyText: [], points: [], threshold: 0.35, written: [], writtenSize: 3 }, d.settings);
-  state.results = d.results || []; if (Array.isArray(d.roster) && d.roster.length) state.roster = d.roster;   // 名簿の無い古いバックアップなら今の名簿を残す
+  // 名簿はテストごとのファイルに入っている（空なら空にする。v1.27）。名簿の項目が無い v1.5 までのファイルだけ、今の名簿を残す
+  state.results = d.results || []; if (Array.isArray(d.roster)) state.roster = d.roster;   // 名簿の項目が無い古いファイルなら今の名簿を残す
   normalizeSettings(); selected = null; updateRosterState();
   initInputs(); renderSettings();
 }
@@ -789,13 +789,6 @@ function fileStem(){
   const d = new Date(), p = n => String(n).padStart(2, '0');
   const name = (state.settings.testName || '無題').replace(/[\\/:*?"<>|]/g, '_');
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${name}`;
-}
-/* バックアップのファイル名（例：マークシート採点_バックアップ_2026-09-27_1学期期末.json）
-   v1.10 までは「20260927_テスト名_バックアップ.json」。どちらの名前でも「バックアップから戻す」で読み込める。 */
-function backupFileName(){
-  const d = new Date(), p = n => String(n).padStart(2, '0');
-  const name = (state.settings.testName || '無題').replace(/[\\/:*?"<>|]/g, '_');
-  return `マークシート採点_バックアップ_${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${name}.json`;
 }
 
 /* 結果の読み出し（手で直した値を優先） */
@@ -1080,7 +1073,7 @@ const KEY_APP = 'testmaker-answerkey', KEY_SCHEMA = 2;
 /** 採点用JSONを確かめて、取り込む内容を返す。読めないときは { error: '理由と対処' } */
 function parseAnswerKey(d){
   if (!d || typeof d !== 'object') return { error: 'ファイルの中身を読み取れませんでした。テスト問題メーカーの「採点用JSON」ボタンで保存し直してください。' };
-  if (d.app === 'marksheet-grader' || d.app === 'marksheet-saiten') return { error: 'これはこのアプリのバックアップファイルです。右上の「バックアップから戻す」から開いてください。' };
+  if (d.app === 'marksheet-grader' || d.app === 'marksheet-saiten') return { error: 'これはこのアプリのデータファイル（またはバックアップ）です。テスト問題メーカーの「採点用JSON」を選んでください。このファイルの続きをするときは、右上の「保存・開く」→「開く」を使います。' };
   if (d.app !== KEY_APP) return { error: 'テスト問題メーカーの「採点用JSON」ではありません。テスト問題メーカーの画面上の「採点用JSON」ボタンで保存したファイルを選んでください。' };
   if (+d.schema > KEY_SCHEMA) return { error: `新しい形式（${d.schema}）の採点用JSONです。このアプリは形式${KEY_SCHEMA}までしか読めません。採点アプリを新しい版にしてください。` };
   if (!(+d.schema >= 1 && +d.schema <= KEY_SCHEMA)) return { error: '採点用JSONの形式が分かりません。テスト問題メーカーで保存し直してください。' };
@@ -1153,7 +1146,7 @@ function applyAnswerKey(p){
   const nRes = state.results.length, sameExam = !!(s.source && s.source.examId && s.source.examId === P.source.examId);
   const hadContent = hasContent();   // 読み込む前に、何か入っていたか（空なら今のデータファイルにそのまま入れてよい）
   if (nRes && s.source && s.source.examId && !sameExam){
-    if (!confirm(`読み取り済みの用紙が${nRes}枚あります。読み込むのは、今とは別のテスト（${P.source.name || P.testName}）の正答です。\n\n読み取り結果を消して読み込みますか？（消したくないときは「キャンセル」を押し、先に「バックアップを保存」してください）`)) return false;
+    if (!confirm(`読み取り済みの用紙が${nRes}枚あります。読み込むのは、今とは別のテスト（${P.source.name || P.testName}）の正答です。\n\n読み取り結果を消して読み込みますか？${DF.handle && DF.state === 'ok' ? '（前のテストのファイルは、上書きせずにそのまま残ります）' : '（消したくないときは「キャンセル」を押し、先に右上の「保存・開く」→「新規作成」で今の内容を保存してください）'}`)) return false;
     state.results = []; selected = null; for (const k in images) delete images[k];
   } else if (nRes && !sameExam){
     if (!confirm(`読み取り済みの用紙が${nRes}枚あります。正答と配点を読み込んだ内容に入れ替え、採点し直します。よろしいですか？`)) return false;
@@ -1523,7 +1516,7 @@ function renderDetail(){
       <div class="row" style="justify-content:space-between;margin-bottom:8px"><strong>${escHtml(r.source)}</strong>
       <button class="btn small" id="btnDel">この用紙を削除</button></div>`;
   h += images[r.uid] ? `<canvas id="scanView"></canvas><p class="note">赤い枠：読み取ったマーク／黄色：あいまいな箇所</p>`
-                     : `<div class="warn">画像はバックアップに含まれないため表示できません。必要なら元のPDFを見て確認してください。</div>`;
+                     : `<div class="warn">画像はデータファイルに入らないため、読み取ったときの画面でしか表示できません。必要なら元のPDFを見て確認してください。</div>`;
   h += `</div><div>`;
   if (r.error) h += `<div class="err">${r.error}。用紙を確認して再スキャンしてください。</div>`;
   else {
@@ -2239,26 +2232,6 @@ $('#btnReport').onclick = () => {
   printHTML(reportHTML(list), `${s.grade ? s.grade + '年　' : ''}${s.testName || 'テスト'}　成績一覧・分析`);
 };
 
-$('#btnBackup').onclick = () => {
-  // 共通ルールに合わせ「アプリ名_バックアップ_日付」で始める(テスト名も付けて、どのテストか分かるようにする)
-  downloadFile(backupFileName(), JSON.stringify(stateData('backup')), 'application/json');
-  toast('バックアップを保存しました');
-};
-$('#fileBackup').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  if (practiceSnapshot){ toast('練習中はバックアップを開けません。先に「練習を終えて元に戻す」を押してください'); return; }
-  try {
-    const d = JSON.parse(await f.text());
-    if (d.app !== 'marksheet-grader' && d.app !== 'marksheet-saiten') throw new Error('このアプリのバックアップファイルではありません');
-    // データファイルを開いているときは、そのファイルの中身も置き換わる（別のテストなら、先に「新規作成」）
-    if (state.results.length && !confirm(DF.state === 'ok'
-      ? `今の内容をバックアップの内容に置き換えます。\nデータファイル「${DF.handle.name}」の中身も置き換わります。\n（今のデータファイルを残したいときは、キャンセルして、右上の「保存・開く」→「新規作成」を先にしてください）\nよろしいですか？`
-      : '今の内容をバックアップの内容に置き換えます。よろしいですか？')) return;
-    loadData(d); autosave(); showStep(1);
-    toast('バックアップを開きました');
-  } catch (err) { alert('開けませんでした：' + err.message); }
-};
-
 /* ---- 使い方ページ：読み取りの自己診断 ----
    テスト用の用紙画像をcanvasに描き、OMR で読んで正解と比べる。
    用紙の描き方は LAYOUT の値をそのまま使う（LAYOUT を変えてもテストは直さなくてよい）。 */
@@ -2451,8 +2424,7 @@ const TOUR = [
   { step: 4, sel: '#btnSlips', up: '.row', title: '出力', text: '<strong>採点結果のExcel</strong>（全員と組ごとのシートが1つのファイルに入る）、CSV、<strong>観点別の一覧</strong>（評定の表に貼り付ける用のExcel）、<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>模範解答</strong>（採点前でも印刷できる）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）を出せます。印刷画面で「PDFに保存」も選べます。' },
   { step: 4, sel: '#slipOpts', title: '個人票に載せる項目', text: '平均点・組の平均点・順位・偏差値・得点分布などを、個人票に載せるかどうかここで選べます。はじめは平均点だけが載ります。' },
   { step: 4, sel: '#rosterState', up: '.row', title: '名簿（氏名）', text: '組・番号・氏名の列のCSVを読み込むと、個人票や一覧に氏名が入ります。4列目にフリガナを入れると、個人票に出ます。一度読み込めば次のテストでも使えます。読み込むと、下の「名簿を見る」で名簿の一覧と、名簿にない組・番号の用紙を確かめられます。' },
-  { step: 4, sel: '#btnDataFile', title: '保存・開く', text: '正答・読み取り結果・名簿は、ファイル（.json）に自動で保存されます。新しいテストは「新規作成」、前のテストの続きは「開く」です。ファイルを決めるまでは、どこにも保存されません。校務共有サーバーに置けば、別のPCでも続きができます。' },
-  { step: 4, sel: '#btnBackup', title: 'バックアップ', text: '「バックアップを保存」で、日付入りのファイルにも残せます。データファイルをまちがえて消したときに戻せるよう、採点が終わったら保存しておくと安心です。' },
+  { step: 4, sel: '#btnDataFile', title: '保存・開く', text: '正答・読み取り結果・名簿は、保存するフォルダの中の、テストごとのファイル（.json）に自動で保存されます。新しいテストは「新規作成」、前のテストの続きは「開く」です。毎日のバックアップも同じフォルダに自動で残り、「前の日の状態に戻す」で戻せます。' },
   { step: 'help', title: '案内はここまでです', text: () => practiceSnapshot
       ? 'このあと「3 読み取り」の青いボタンでサンプルを読み取り、「4 結果の確認と出力」で黄色の欄を直したり、記述を採点したり、個人票を印刷プレビューしたりしてみてください。<br>終わったら、上の青い帯の<strong>「練習を終えて元に戻す」</strong>を押します。'
       : 'くわしい説明はこの「使い方・引き継ぎ」ページにあります。<br>印刷もスキャンもせずに試せる<strong>「サンプルで練習」</strong>もおすすめです。' },
@@ -2538,28 +2510,35 @@ function placeTour(){
 $('#btnTour').onclick = () => startTour(0);
 $('#btnTour2').onclick = () => startTour(0);
 
-/* ---- データファイル（.json）への自動保存（v1.21。v1.26 でブラウザの中の控えをやめた） ----
+/* ---- データファイル（.json）への自動保存（v1.21〜。v1.26 でブラウザの中の控えをやめ、v1.27 で「保存するフォルダ」を選ぶ形にした） ----
    なぜ：ブラウザの中（localStorage）だけの保存は、PC・ブラウザ（Chrome と Edge）・アカウントごとに別々で、
    「開く人・開くPCによって中身が違う」「履歴削除で消える」混乱のもとになるため。テスト問題メーカーと同じ作りにした。
-   - Chrome/Edge のファイルへの直接保存（File System Access API）で、先生が選んだ1つのファイルに、変更のたびに上書きする。
-   - 中身はバックアップと同じ形（kind だけ 'data'）。データファイルも「バックアップから戻す」で開ける。
-   - このアプリは今開いているテスト1つ分を持つので、「1つのテストに1つのデータファイル」で使う（別のテストは別のファイル）。
-   - 選んだファイルの目印は IndexedDB に覚える（localStorage には入らないため）。次に開いたとき、編集の許可が残っていればそのまま開き、
-     無ければ「開く」の画面を出す（ファイルを選ぶ画面は、前回のファイルがある場所から始まる）。
+   - 先生が最初に「保存するフォルダ」を選ぶ（校務共有サーバーのフォルダなど）。その中に「1つの学年の1つのテストに1つのデータファイル」
+     （マークシート採点_データ_2年_テスト名.json）を作り、変更のたびに上書きする（Chrome/Edge の File System Access API）。
+     「開く」では、ファイルを選ぶ画面ではなく、フォルダの中のテストの一覧を出す。名簿はテストごとに変わることがあるので、ファイルを分ける。
+   - フォルダにしたのは、日付つきのバックアップを自動で書くため（ブラウザは、選ばれたファイルの横に別のファイルを作れない）。
+     バックアップは「フォルダ/バックアップ/マークシート採点_データ_…_2026-11-06.json」。1日1つで、その日の最後の状態
+     （保存のたびに、BACKUP_EVERY_MIN 分おきに書き直す）。BACKUP_KEEP_DAYS 日より古いものは消す。
+     「前の日の状態に戻す」で選んで戻せる。手動のバックアップのボタンは、紛らわしいので v1.27 でやめた。
+   - 中身はどれも同じ形（stateData。kind だけ 'data' / 'backup'）。
+   - 選んだフォルダと、最後に開いたファイルの名前は IndexedDB に覚える。次に開いたとき、フォルダの許可が残っていれば前回のファイルを開き、
+     無ければ「開く」の画面を出す（許可を求めるにはボタン操作が要る）。
    - 別の画面・別のPCが同じファイルを書き換えていたら（ファイルの更新日時で判断）、上書きせずに止めて知らせる。
-   - v1.26 から、データはブラウザの中（localStorage）に書かない。「ファイルに保存されていないのに、ブラウザには残っている」状態が
-     先生に分かりにくく、共用のPCに生徒のデータが残るため。代わりに、ファイルに書いていない変更があるうちは（DF.dirty）
-     画面の上に知らせ、タブを閉じるときに確認を出す（beforeunload）。前の版の控えが残っていれば、最初にファイルへ移してもらう。
-   - ボタンの言葉は「開く」「新規作成」にそろえる（v1.26。パソコンが得意でない先生にも通じるように）。
-   - 生徒の解答・名簿が入るので、データファイルは校務共有サーバーか先生のPCに置く（README に明記）。 */
+   - データはブラウザの中（localStorage）に書かない（v1.26〜）。ファイルに書いていない変更があるうちは（DF.dirty）、
+     画面の上に知らせ、タブを閉じるときに確認を出す（beforeunload）。1.25 までの控えが残っていれば、最初にファイルへ移してもらう。
+   - 生徒の解答・名簿が入るので、フォルダは校務共有サーバーか先生のPCにする（README に明記）。 */
 const DATA_FILE_PREFIX = 'マークシート採点_データ';
+const BACKUP_DIR = 'バックアップ';     // 保存するフォルダの中に作る、バックアップのフォルダの名前
+const BACKUP_KEEP_DAYS = 30;          // バックアップを残す日数（学校ごとに変えてよい）
+const BACKUP_EVERY_MIN = 10;          // その日のバックアップを書き直す間隔（分）
 const FILE_TYPES = [{ description: 'マークシート採点のデータ', accept: { 'application/json': ['.json'] } }];
 const UNSAVED_KEY = 'marksheet-grader-unsaved';   // 1.25 までの印（控えにだけある変更）。前の版の控えを移すときだけ読む
-// DF.state：unsupported（このブラウザは非対応）| none（ファイルを決めていない）| ok | error（保存失敗）| conflict（別の所で変更された）
-// DF.last：前回のファイル（ファイルを選ぶ画面をその場所から始めるため）。DF.dirty：ファイルに書いていない変更がある。
-// DF.asked：ファイルを決めていないとき、「ファイルに保存してください」の画面をこの画面でもう出したか（何度も出さない）
-const DF = { handle: null, last: null, state: 'none', lastMod: 0, writing: false, again: false, err: '', savedAt: 0, dirty: false, asked: false };
-const fsSupported = () => 'showSaveFilePicker' in window && 'showOpenFilePicker' in window && 'indexedDB' in window;
+// DF.state：unsupported（このブラウザは非対応）| none（ファイルを開いていない）| ok | error（保存失敗）| conflict（別の所で変更された）
+// DF.dir：保存するフォルダ。DF.fileDir：今のファイルがあるフォルダ（バックアップを書く所）。DF.lastName：前回開いたファイルの名前。
+// DF.oldHandle：1.26 で使っていたファイル（フォルダを選ぶ画面を、その場所から始めるため）。DF.dirty：ファイルに書いていない変更がある。
+// DF.asked：ファイルを開いていないとき、「ファイルに保存してください」をこの画面でもう出したか（何度も出さない）。DF.bkDay・bkAt：最後にバックアップを書いた日・時刻
+const DF = { dir: null, fileDir: null, handle: null, lastName: '', oldHandle: null, state: 'none', lastMod: 0, writing: false, again: false, err: '', savedAt: 0, dirty: false, asked: false, bkDay: '', bkAt: 0 };
+const fsSupported = () => 'showDirectoryPicker' in window && 'indexedDB' in window;
 function idb(mode, fn){
   return new Promise((res, rej) => {
     const rq = indexedDB.open('marksheet-grader', 1);
@@ -2575,7 +2554,14 @@ function idb(mode, fn){
 const idbGet = k => idb('readonly', s => s.get(k));
 const idbSet = (k, v) => idb('readwrite', s => s.put(v, k));
 function hasContent(){ const s = state.settings; return state.results.length > 0 || !!s.testName || s.key.some(k => k !== null); }
-function dataFileName(){ return `${DATA_FILE_PREFIX}_${(state.settings.testName || '無題').replace(/[\\/:*?"<>|]/g, '_')}.json`; }
+const todayStr = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+/** データファイルの名前。1つの学年の1つのテストに1つなので、テスト名に学年が入っていなければ前に付ける（例：マークシート採点_データ_2年_期末テスト.json） */
+function dataFileName(){
+  const s = state.settings, t = (s.testName || '無題').trim();
+  const g = s.grade && !new RegExp(`${s.grade}\\s*(年|学年)`).test(t.normalize('NFKC')) ? s.grade + '年_' : '';
+  return `${DATA_FILE_PREFIX}_${(g + t).replace(/[\\/:*?"<>|]/g, '_')}.json`;
+}
+const testLabel = name => name.replace(new RegExp(`^${DATA_FILE_PREFIX}_`), '').replace(/\.json$/i, '');
 
 /* 前の版（1.25 まで）がブラウザの中に残した控え。{ d（中身）, unsaved（ファイルに書いていない印があるか） } か null */
 function readOldCopy(){
@@ -2585,31 +2571,74 @@ function readOldCopy(){
   } catch (e) { return null; }
 }
 function clearOldCopy(){ try { [STORE_KEY, OLD_STORE_KEY, UNSAVED_KEY].forEach(k => localStorage.removeItem(k)); } catch (e) { /* 使えなくても続ける */ } }
-let oldCopyPending = false;   // 前の版の控えを画面に出していて、まだファイル（かバックアップ）にしていない
+let oldCopyPending = false;   // 前の版の控えを画面に出していて、まだファイルにしていない
 
-/* データファイルに書く。書いている間に変更が来たら、終わってからもう一度書く */
+/* データファイルに書く。書いている間に変更が来たら、終わってからもう一度書く。書けたら、その日のバックアップも書く */
 async function dfWrite(){
   if (DF.state !== 'ok' || practiceSnapshot) return;
   if (DF.writing){ DF.again = true; return; }
   DF.writing = true; showSaveState();
+  let json = '';
   try {
     do {
       DF.again = false;
       if (practiceSnapshot) break;   // 書いている間に練習が始まった：続きは練習を終えてから書く（DF.dirty は残る）
-      const json = JSON.stringify(stateData('data'));   // 先に中身を取る（書いている間に練習を始めても、練習の中身を書かないように）
+      json = JSON.stringify(stateData('data'));   // 先に中身を取る（書いている間に練習を始めても、練習の中身を書かないように）
       const f = await DF.handle.getFile();
       if (DF.lastMod && f.lastModified !== DF.lastMod){ DF.state = 'conflict'; break; }
       const w = await DF.handle.createWritable();
       await w.write(json); await w.close();
       DF.lastMod = (await DF.handle.getFile()).lastModified; DF.savedAt = Date.now();
     } while (DF.again);
-    if (DF.state === 'ok'){ DF.dirty = false; if (oldCopyPending){ clearOldCopy(); oldCopyPending = false; } }
+    if (DF.state === 'ok' && !practiceSnapshot){ DF.dirty = false; if (oldCopyPending){ clearOldCopy(); oldCopyPending = false; } }
   } catch (e) { console.warn(e); DF.state = 'error'; DF.err = e.message || String(e); }
   DF.writing = false; renderFileBar(); showSaveState();
+  if (DF.state === 'ok' && json) dfBackup(json);
+}
+
+/* ---- 自動のバックアップ（v1.27） ---- */
+const stemOf = name => name.replace(/\.json$/i, '');
+async function backupDir(dir){ return (dir || DF.fileDir).getDirectoryHandle(BACKUP_DIR, { create: true }); }
+/** 「フォルダ/バックアップ」に、名前_日付(_しるし).json で書く */
+async function writeBackupFile(stem, json, mark, dir){
+  const bd = await backupDir(dir);
+  const w = await (await bd.getFileHandle(`${stem}_${todayStr()}${mark ? '_' + mark : ''}.json`, { create: true })).createWritable();
+  await w.write(json); await w.close();
+  return bd;
+}
+/** その日のバックアップを書く（BACKUP_EVERY_MIN 分おき。日が変わったらすぐ）。失敗しても作業は止めない */
+async function dfBackup(json){
+  if (!DF.fileDir || !DF.handle) return;
+  const day = todayStr(), now = Date.now();
+  if (DF.bkDay === day && now - DF.bkAt < BACKUP_EVERY_MIN * 60000) return;
+  DF.bkDay = day; DF.bkAt = now;
+  try { cleanBackups(await writeBackupFile(stemOf(DF.handle.name), json)); }
+  catch (e) { console.warn('バックアップを書けませんでした', e); }
+}
+/** BACKUP_KEEP_DAYS 日より古いバックアップを消す（このアプリのファイルだけ） */
+async function cleanBackups(bd){
+  const lim = new Date(); lim.setDate(lim.getDate() - BACKUP_KEEP_DAYS);
+  const p = n => String(n).padStart(2, '0'), cut = `${lim.getFullYear()}-${p(lim.getMonth()+1)}-${p(lim.getDate())}`;
+  const old = [];
+  for await (const [name, h] of bd.entries()){
+    const m = name.match(/_(\d{4}-\d{2}-\d{2})(_[^_]+)?\.json$/);
+    if (h.kind === 'file' && name.startsWith(DATA_FILE_PREFIX) && m && m[1] < cut) old.push(name);
+  }
+  for (const name of old){ try { await bd.removeEntry(name); } catch (e) { console.warn(e); } }
+}
+/** 今のテストのバックアップの一覧（新しい順） */
+async function listBackups(){
+  const bd = await backupDir(), stem = stemOf(DF.handle.name), out = [];
+  for await (const [name, h] of bd.entries()){
+    if (h.kind !== 'file' || !name.startsWith(stem + '_')) continue;
+    const m = name.slice(stem.length).match(/^_(\d{4}-\d{2}-\d{2})(?:_([^_]+))?\.json$/);
+    if (m) out.push({ name, h, day: m[1], mark: m[2] || '', mod: (await h.getFile()).lastModified });
+  }
+  return out.sort((a, b) => b.day.localeCompare(a.day) || b.mod - a.mod);   // 日付の新しい順。同じ日は書いた時刻の新しい順
 }
 
 /* 許可済みのファイルを開いて、その中身を今のデータにする（空のファイルなら今の内容を書く）。開かなかったら false */
-async function dfOpenHandle(hd){
+async function dfOpenHandle(hd, dir){
   if (practiceSnapshot) endPractice();   // 本当のデータを開くので、練習は終える
   const f = await hd.getFile(), text = await f.text();
   let d = null;
@@ -2617,15 +2646,17 @@ async function dfOpenHandle(hd){
     d = JSON.parse(text);
     if (d.app !== 'marksheet-grader' && d.app !== 'marksheet-saiten') throw new Error('マークシート採点のデータではありません');
   }
-  // ファイルに保存していない内容が画面にあるとき、黙って置き換えない
+  // ファイルに保存していない内容が画面にあるとき、黙って置き換えない（残すときはバックアップのフォルダに書く）
   if (d && DF.dirty && hasContent()){
     if (!confirm(`今の画面に、ファイルに保存していない内容があります（テスト名：${state.settings.testName || '無題'}）。\n`
-      + `「${hd.name}」を開くと、この内容は置き換わります。\n\n`
-      + '［OK］念のため、今の内容をバックアップとして書き出してから開く\n［キャンセル］開かない')) return false;
-    downloadFile(backupFileName(), JSON.stringify(stateData('backup')), 'application/json');
+      + `「${testLabel(hd.name)}」を開くと、この内容は置き換わります。\n\n`
+      + `［OK］念のため、今の内容を「${BACKUP_DIR}」フォルダに残してから開く\n［キャンセル］開かない`)) return false;
+    try { await writeBackupFile(stemOf(dataFileName()), JSON.stringify(stateData('backup')), '開く前', dir || DF.dir); }
+    catch (e) { if (!confirm(`今の内容を残せませんでした（${e.message || e}）。\nこのまま開きますか？（今の内容は消えます）`)) return false; }
   }
-  DF.handle = hd; DF.last = hd; DF.lastMod = f.lastModified; DF.state = 'ok'; DF.err = ''; DF.savedAt = f.lastModified;
-  try { await idbSet('dataFile', hd); } catch (e) { console.warn(e); }
+  DF.handle = hd; DF.fileDir = dir || DF.dir; DF.lastName = hd.name; DF.lastMod = f.lastModified;
+  DF.state = 'ok'; DF.err = ''; DF.savedAt = f.lastModified; DF.bkDay = ''; DF.bkAt = 0;
+  try { await idbSet('dataFileName', hd.name); } catch (e) { console.warn(e); }
   if (d){
     loadData(d); DF.dirty = false; showStep(1);
     if (oldCopyPending){ clearOldCopy(); oldCopyPending = false; }   // 前の版の控えより、開いたファイルを使うと決めた
@@ -2635,56 +2666,123 @@ async function dfOpenHandle(hd){
 }
 function dfFail(e, what){
   console.warn(e);
-  alert(`${what}。\n\n理由：${e.message || e}\n\n・Chrome か Edge で開いているか確かめてください。\n・ファイルが別の場所に移されていたら、右上の「保存・開く」から選び直してください。\n・ファイルに保存できるまで、このタブを閉じないでください（右上の「バックアップを保存」でも残せます）。`);
+  alert(`${what}。\n\n理由：${e.message || e}\n\n・Chrome か Edge で開いているか確かめてください。\n・フォルダが別の場所に移されていたら、右上の「保存・開く」→「フォルダを変える」で選び直してください。\n・ファイルに保存できるまで、このタブを閉じないでください。`);
 }
 async function askPerm(hd){ return (await hd.queryPermission({ mode: 'readwrite' })) === 'granted' || (await hd.requestPermission({ mode: 'readwrite' })) === 'granted'; }
 const NOT_ALLOWED = '編集が許可されなかったため、ファイルに保存できません。\nもう一度ボタンを押して、「ファイルを編集」（または「許可」）を選んでください。';
-/* ファイルを選ぶ画面を、前回のファイルがある場所から始める（場所が無くなっていたら、ふつうに出す） */
-async function pickWith(fn, opts){
-  const base = Object.assign({ id: 'marksheet-grader', types: FILE_TYPES }, opts), from = DF.handle || DF.last;
-  if (from){ try { return await fn(Object.assign({ startIn: from }, base)); } catch (e) { if (e.name === 'AbortError') throw e; } }
-  return fn(base);
+/* 保存するフォルダを選ぶ（はじめて・「フォルダを変える」）。選ぶ画面は、前のフォルダ（1.26 のファイルがある所）から始める */
+async function pickDir(){
+  const base = { id: 'marksheet-grader', mode: 'readwrite' }, from = DF.dir || DF.oldHandle;
+  let dir = null;
+  if (from){ try { dir = await showDirectoryPicker(Object.assign({ startIn: from }, base)); } catch (e) { if (e.name === 'AbortError') throw e; } }
+  if (!dir) dir = await showDirectoryPicker(base);
+  if (!await askPerm(dir)){ alert(NOT_ALLOWED); return false; }
+  DF.dir = dir;
+  try { await idbSet('dataDir', dir); } catch (e) { console.warn(e); }
+  return true;
 }
-/* 開く：前に保存したデータファイルを選んで、続きから作業する */
-async function dfPickOpen(){
-  try {
-    const [hd] = await pickWith(o => showOpenFilePicker(o), { multiple: false });
-    if (/バックアップ/.test(hd.name) && !confirm(`「${hd.name}」はバックアップのファイルのようです。\nこのファイルをデータファイルとして使い、これから上書きしていきますか？\n（中身を見たいだけなら、キャンセルして右上の「バックアップから戻す」を使ってください）`)) return;
-    if (!await askPerm(hd)){ alert(NOT_ALLOWED); return; }
-    if (await dfOpenHandle(hd)){ closeFileDialog(); toast(`「${hd.name}」を開きました。これからは自動でここに保存します`); }
-  } catch (e) { if (e.name !== 'AbortError') dfFail(e, 'ファイルを開けませんでした'); }
+/* 保存するフォルダを使えるようにする（無ければ選んでもらう・許可が切れていれば聞く）。使えなければ false */
+async function ensureDir(){
+  if (DF.dir){ if (await askPerm(DF.dir)) return true; alert(NOT_ALLOWED); return false; }
+  return pickDir();
 }
-/* 新規作成：今の画面の内容を、新しいデータファイルに保存する */
-async function dfPickCreate(){
+/** フォルダの中のテストのファイル（新しい順） */
+async function listDataFiles(){
+  const out = [];
+  for await (const [name, h] of DF.dir.entries())
+    if (h.kind === 'file' && name.startsWith(DATA_FILE_PREFIX + '_') && /\.json$/i.test(name)) out.push({ name, h, mod: (await h.getFile()).lastModified });
+  return out.sort((a, b) => b.mod - a.mod);
+}
+const fmtTime = ts => new Date(ts).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+/* 開く：フォルダの中のテストの一覧から選ぶ */
+async function openListDialog(){
   try {
-    const hd = await pickWith(o => showSaveFilePicker(o), { suggestedName: dataFileName() });
-    const f = await hd.getFile();
-    if (f.size > 0){   // 既にあるデータファイルを選んだ：消さずに開くか聞く
-      let isData = false; try { const a = JSON.parse(await f.text()).app; isData = a === 'marksheet-grader' || a === 'marksheet-saiten'; } catch (e) { /* 読めなければ上書き */ }
-      if (isData && confirm(`「${hd.name}」には、すでにデータが入っています。\n［OK］このファイルを開く（おすすめ）\n［キャンセル］今の画面の内容で上書きする`)){
-        if (await dfOpenHandle(hd)){ closeFileDialog(); toast(`「${hd.name}」を開きました`); }
+    if (!await ensureDir()) return;
+    const files = await listDataFiles(), fns = { dir: changeDir, close: closeFileDialog };
+    files.forEach((f, i) => fns['f' + i] = async () => {
+      try { if (await dfOpenHandle(f.h, DF.dir)){ closeFileDialog(); toast(`「${testLabel(f.name)}」を開きました。これからは自動でここに保存します`); } }
+      catch (e) { dfFail(e, 'ファイルを開けませんでした'); }
+    });
+    showFileDialog('<h2>開く</h2>'
+      + `<p>フォルダ「<b>${escHtml(DF.dir.name)}</b>」の中のテストです。続きをするテストを選んでください。</p>`
+      + (files.length
+        ? '<div class="fchoice flist">' + files.map((f, i) => choiceBtn(escHtml(testLabel(f.name)) + (f.name === DF.lastName ? '　（前回）' : ''),
+            `最後に保存：${fmtTime(f.mod)}${DF.handle && DF.handle.name === f.name && DF.fileDir === DF.dir ? '（今開いています）' : ''}`, 'f' + i, f.name === DF.lastName)).join('') + '</div>'
+        : '<p>このフォルダには、まだテストのファイルがありません。正答を入れてから「新規作成」で作ってください。</p>')
+      + '<div class="fchoice">' + choiceBtn('フォルダを変える', 'ほかのフォルダのテストを開くとき。', 'dir') + choiceBtn('閉じる', '今のまま変えません。', 'close') + '</div>', fns);
+  } catch (e) { if (e.name !== 'AbortError') dfFail(e, 'フォルダの中を見られませんでした'); }
+}
+async function changeDir(){
+  try { if (await pickDir()) openListDialog(); }
+  catch (e) { if (e.name !== 'AbortError') dfFail(e, 'フォルダを選べませんでした'); }
+}
+/* 新規作成：今の画面の内容を、保存するフォルダの中の新しいデータファイルに保存する */
+async function dfCreate(){
+  try {
+    if (!await ensureDir()) return;
+    const name = dataFileName();
+    let hd = null; try { hd = await DF.dir.getFileHandle(name); } catch (e) { /* まだ無い */ }
+    if (hd && (await hd.getFile()).size > 0){   // 同じ名前のファイルがある：消さずに開くか聞く
+      if (confirm(`フォルダに「${testLabel(name)}」のファイルがすでにあります。\n［OK］このファイルを開く（おすすめ）\n［キャンセル］今の画面の内容で上書きするか選ぶ`)){
+        if (await dfOpenHandle(hd, DF.dir)){ closeFileDialog(); toast(`「${testLabel(name)}」を開きました`); }
         return;
       }
+      if (!confirm(`「${testLabel(name)}」を、今の画面の内容で上書きします。\n前の内容は「${BACKUP_DIR}」フォルダに残します。上書きしますか？`)) return;
+      await writeBackupFile(stemOf(name), await (await hd.getFile()).text(), '上書き前', DF.dir);
     }
     if (practiceSnapshot) endPractice();
-    DF.handle = hd; DF.last = hd; DF.lastMod = 0; DF.state = 'ok'; DF.err = ''; DF.dirty = true;
-    try { await idbSet('dataFile', hd); } catch (e) { console.warn(e); }
+    hd = await DF.dir.getFileHandle(name, { create: true });
+    DF.handle = hd; DF.fileDir = DF.dir; DF.lastName = name; DF.lastMod = 0; DF.state = 'ok'; DF.err = ''; DF.dirty = true; DF.bkDay = ''; DF.bkAt = 0;
+    try { await idbSet('dataFileName', name); } catch (e) { console.warn(e); }
     await dfWrite(); closeFileDialog();
-    if (DF.state === 'ok') toast(`「${hd.name}」に保存しました。これからは自動でここに保存します`);
+    if (DF.state === 'ok') toast(`「${testLabel(name)}」を作りました。これからは自動でここに保存します`);
   } catch (e) { if (e.name !== 'AbortError') dfFail(e, 'ファイルを作れませんでした'); }
 }
 /* 新規作成（まだ何も入れていないとき）：ファイルは、正答を入れてテスト名が決まってから作る */
 function startNew(){
   closeFileDialog(); DF.asked = false;
-  toast('「正答と配点」で正答を入れると（テスト問題メーカーの正答を読み込むと）、保存先のファイルを決める画面が出ます');
+  toast('「正答と配点」で正答を入れると（テスト問題メーカーの正答を読み込むと）、保存の画面が出ます');
   showStep(1);
 }
-const createOrStart = () => hasContent() ? dfPickCreate() : startNew();
+const createOrStart = () => hasContent() ? dfCreate() : startNew();
+/* 前の日の状態に戻す：今のテストのバックアップから選ぶ */
+async function openRestoreDialog(){
+  try {
+    if (!DF.handle){ alert('テストのファイルを開いてから使ってください。'); return; }
+    if (!await askPerm(DF.fileDir)){ alert(NOT_ALLOWED); return; }
+    const list = await listBackups(), fns = { file: restoreFromFile, close: closeFileDialog };
+    list.forEach((b, i) => fns['b' + i] = () => restoreFrom(b));
+    const markText = { '開く前': '別のテストを開く前の内容', '上書き前': '上書きする前の内容', '戻す前': '前の日の状態に戻す前の内容' };
+    showFileDialog('<h2>前の日の状態に戻す</h2>'
+      + `<p>「<b>${escHtml(testLabel(DF.handle.name))}</b>」のバックアップです。毎日、その日の最後の状態を「${BACKUP_DIR}」フォルダに自動で残しています（${BACKUP_KEEP_DAYS}日分）。戻したい日を選んでください。</p>`
+      + (list.length ? '<div class="fchoice flist">' + list.map((b, i) => choiceBtn(`${b.day.replace(/^(\d+)-0?(\d+)-0?(\d+)$/, '$1年$2月$3日')}${b.mark ? '（' + escHtml(markText[b.mark] || b.mark) + '）' : ''}`, `${fmtTime(b.mod)} の状態`, 'b' + i)).join('') + '</div>'
+        : '<p>まだバックアップがありません（ファイルに保存すると、その日のバックアップができます）。</p>')
+      + '<div class="fchoice">' + choiceBtn('前の版のバックアップを選ぶ', '1.26 までの「バックアップを保存」で書き出したファイル（マークシート採点_バックアップ_….json）から戻すとき。', 'file')
+      + choiceBtn('閉じる', '今のまま変えません。', 'close') + '</div>', fns);
+  } catch (e) { dfFail(e, 'バックアップを見られませんでした'); }
+}
+async function restoreData(d, label){
+  if (d.app !== 'marksheet-grader' && d.app !== 'marksheet-saiten') throw new Error('このアプリのデータではありません');
+  if (!confirm(`今の内容を「${label}」の状態に戻します。\n今の内容は「${BACKUP_DIR}」フォルダに残します。よろしいですか？`)) return;
+  await writeBackupFile(stemOf(DF.handle.name), JSON.stringify(stateData('backup')), '戻す前');
+  loadData(d); autosave(); closeFileDialog(); showStep(1);
+  toast(`「${label}」の状態に戻しました`);
+}
+async function restoreFrom(b){
+  try { await restoreData(JSON.parse(await (await b.h.getFile()).text()), b.day); }
+  catch (e) { dfFail(e, '戻せませんでした'); }
+}
+async function restoreFromFile(){
+  try {
+    const [h] = await showOpenFilePicker({ id: 'marksheet-grader-old', types: FILE_TYPES, multiple: false });
+    await restoreData(JSON.parse(await (await h.getFile()).text()), h.name.replace(/\.json$/i, ''));
+  } catch (e) { if (e.name !== 'AbortError') dfFail(e, '戻せませんでした'); }
+}
 async function dfReopen(){   // 「変更を読み込む」：別の所で変更されたファイルを読み直す
   try {
     if (!await askPerm(DF.handle)){ alert(NOT_ALLOWED); return; }
     DF.dirty = false;   // 読み直すと決めたので、この画面の内容は使わない
-    if (await dfOpenHandle(DF.handle)){ closeFileDialog(); toast(`「${DF.handle.name}」を読み直しました`); }
+    if (await dfOpenHandle(DF.handle, DF.fileDir)){ closeFileDialog(); toast(`「${testLabel(DF.handle.name)}」を読み直しました`); }
   } catch (e) { dfFail(e, 'ファイルを開けませんでした'); renderFileBar(); }
 }
 async function dfRetry(){   // 保存に失敗したあと、もう一度書く
@@ -2695,17 +2793,11 @@ function dfOverwrite(){
   if (!confirm('データファイルを、この画面の内容で上書きします。\n別の画面・別のパソコンで直した内容は、データファイルから消えます。\n（残したいときは、キャンセルして「変更を読み込む」を押してください）\n上書きしますか？')) return;
   DF.lastMod = 0; DF.state = 'ok'; dfWrite();
 }
-function writeBackup(){
-  downloadFile(backupFileName(), JSON.stringify(stateData('backup')), 'application/json');
-  toast('バックアップを保存しました');
-}
-/* v1.23 別のテストを読み込んだとき：今のデータファイルから切り離す（前のテストのファイルはそのまま残る）。切り離したファイルの情報を返す。
-   次に開いたときに前のファイルを自動で開かないよう、覚えているファイルも消す（ファイルを選ぶ画面は、この画面の間は前の場所から始まる） */
+/* v1.23 別のテストを読み込んだとき：今のデータファイルから切り離す（前のテストのファイルはそのまま残る）。切り離したファイルの情報を返す */
 function dfDetach(){
-  const prev = { handle: DF.handle, lastMod: DF.lastMod, state: DF.state };
-  DF.last = DF.handle; DF.handle = null; DF.state = 'none'; DF.lastMod = 0; DF.err = ''; DF.savedAt = 0;
+  const prev = { handle: DF.handle, fileDir: DF.fileDir, lastMod: DF.lastMod, state: DF.state };
+  DF.handle = null; DF.fileDir = null; DF.state = 'none'; DF.lastMod = 0; DF.err = ''; DF.savedAt = 0;
   DF.dirty = true; DF.asked = true;   // 「ファイルに保存してください」の代わりに、dfAskNewTest の画面を出す
-  idbSet('dataFile', null).catch(e => console.warn(e));
   renderFileBar(); showSaveState();
   return prev;
 }
@@ -2718,61 +2810,64 @@ function showFileDialog(html, fns){
   body.querySelectorAll('[data-f]').forEach(b => b.onclick = fns[b.dataset.f]);
   if (!dlg.open) dlg.showModal();
 }
-const OPEN_SUB = '前に保存したデータの続きをするとき。ファイルを選びます。';
-const CREATE_SUB = '新しいテストを始めるとき。今の画面の内容（正答・名簿など）を、新しいファイルに保存します。';
-const PLACE_NOTE = '<p>ファイルは<b>校務共有サーバー</b>（このアプリと同じフォルダなど）か、このパソコンに置きます。生徒の解答と名簿が入るので、インターネットやクラウドから見える場所には置かないでください。</p>';
+const CREATE_SUB = '新しいテストを始めるとき。今の画面の内容（正答・名簿など）を、保存するフォルダの中の新しいファイルに保存します。';
+const PLACE_NOTE = '<p>保存するフォルダは<b>校務共有サーバー</b>（このアプリと同じフォルダなど）か、このパソコンにします。生徒の解答と名簿が入るので、インターネットやクラウドから見える場所にはしないでください。</p>';
 /* 右上の「保存・開く」 */
 function openFileDialog(){
   if (DF.state === 'unsupported'){ alert('このブラウザはファイルに保存できません。Chrome か Edge で開いてください。'); return; }
-  const cur = DF.handle ? escHtml(DF.handle.name) : '';
+  const cur = DF.handle ? escHtml(testLabel(DF.handle.name)) : '';
   showFileDialog('<h2>保存・開く</h2>'
-    + (DF.handle ? `<p>今は「<b>${cur}</b>」に自動で保存しています。</p>` : hasContent() ? '<p><b>今の内容は、まだファイルに保存していません。</b></p>' : '')
-    + '<p>正答・配点・読み取り結果・名簿は、ファイル（.json）に自動で保存します。<b>1つのテストに1つのファイル</b>です。</p>' + PLACE_NOTE
-    + '<div class="fchoice">' + choiceBtn('開く', OPEN_SUB, 'open', DF.handle || !hasContent())
-    + choiceBtn('新規作成', hasContent() ? CREATE_SUB + (DF.handle ? '今のファイルは、そのまま残ります。' : '') : '新しいテストを始めるとき。正答を入れたあとで、保存先のファイルを決めます。', 'create', !DF.handle && hasContent())
+    + (DF.handle ? `<p>今は「<b>${cur}</b>」に自動で保存しています${DF.fileDir ? `（フォルダ「${escHtml(DF.fileDir.name)}」）` : ''}。</p>` : hasContent() ? '<p><b>今の内容は、まだファイルに保存していません。</b></p>' : '')
+    + `<p>正答・配点・読み取り結果・名簿は、<b>1つのテストに1つのファイル</b>に自動で保存します。毎日のバックアップも、同じフォルダの「${BACKUP_DIR}」に自動で残します。</p>` + PLACE_NOTE
+    + '<div class="fchoice">' + choiceBtn('開く', '前に保存したテストの続きをするとき。フォルダの中のテストから選びます。', 'open', DF.handle || !hasContent())
+    + choiceBtn('新規作成', hasContent() ? CREATE_SUB + (DF.handle ? '今のファイルは、そのまま残ります。' : '') : '新しいテストを始めるとき。正答を入れたあとで、ファイルを作ります。', 'create', !DF.handle && hasContent())
+    + (DF.handle ? choiceBtn('前の日の状態に戻す', 'まちがえて消した・直したときに、前の日のバックアップから戻します。', 'restore') : '')
     + choiceBtn('閉じる', '今のまま変えません。', 'close') + '</div>',
-    { open: dfPickOpen, create: createOrStart, close: closeFileDialog });
+    { open: openListDialog, create: createOrStart, restore: openRestoreDialog, close: closeFileDialog });
 }
-/* アプリを開いたとき（前回のファイルがあるが、編集の許可がまだ無い） */
+/* アプリを開いたとき（フォルダの許可がまだ無い・1.26 からフォルダを選ぶ形に変わったとき） */
 function openStartDialog(){
-  showFileDialog('<h2>マークシート採点を始めます</h2>'
-    + `<p>前回は「<b>${escHtml(DF.last.name)}</b>」を使っていました。</p>`
-    + '<p>「開く」を押すと、ファイルを選ぶ画面が前回の場所で開きます。ファイルを選んだあと、ブラウザが「このファイルの編集を許可しますか」とたずねたら、<b>「ファイルを編集」（または「許可」）</b>を押してください。</p>'
-    + '<div class="fchoice">' + choiceBtn('開く', OPEN_SUB, 'open', 1)
-    + choiceBtn('新規作成', '新しいテストを始めるとき。正答を入れたあとで、保存先のファイルを決めます。', 'create')
+  const last = DF.lastName ? `<p>前回は「<b>${escHtml(testLabel(DF.lastName))}</b>」を使っていました${DF.dir ? `（フォルダ「${escHtml(DF.dir.name)}」）` : ''}。</p>` : '';
+  const how = DF.dir
+    ? '<p>「開く」を押して、ブラウザが「このフォルダのファイルの表示と編集を許可しますか」のようにたずねたら、<b>「ファイルを編集」（または「許可」）</b>を押してください。テストの一覧が出ます。</p>'
+    : `<p><b>この版から、保存する「フォルダ」を選ぶ形になりました</b>（毎日のバックアップを、同じフォルダに自動で残すため）。「開く」を押して、${DF.oldHandle ? `前回のファイル「${escHtml(DF.oldHandle.name)}」が入っているフォルダ` : 'データファイルを置いているフォルダ'}を選んでください。</p>`;
+  showFileDialog('<h2>マークシート採点を始めます</h2>' + last + how
+    + '<div class="fchoice">' + choiceBtn('開く', '前に保存したテストの続きをするとき。', 'open', 1)
+    + choiceBtn('新規作成', '新しいテストを始めるとき。正答を入れたあとで、ファイルを作ります。', 'create')
     + choiceBtn('閉じる', '今はファイルを開きません。あとで右上の「保存・開く」から開けます。', 'close') + '</div>',
-    { open: dfPickOpen, create: startNew, close: closeFileDialog });
+    { open: openListDialog, create: startNew, close: closeFileDialog });
 }
-/* ファイルを決めていないのに入力が始まったとき（1回だけ出す） */
+/* ファイルを開いていないのに入力が始まったとき（1回だけ出す） */
 function dfAskSave(){
   if (practiceSnapshot || $('#dlgFile').open) return;
   showFileDialog('<h2>ファイルに保存してください</h2>'
-    + '<p>入力した内容は、<b>まだどこにも保存されていません</b>。保存先のファイルを決めると、これからは自動で保存します。</p>' + PLACE_NOTE
-    + '<div class="fchoice">' + choiceBtn('新規作成', `新しいファイル（例：<code>${escHtml(dataFileName())}</code>）に保存します（おすすめ）。`, 'create', 1)
-    + choiceBtn('開く', '前に保存したデータの続きをするとき。今の画面の内容は、開いたファイルの内容に置き換わります。', 'open')
-    + choiceBtn('閉じる', '保存先を決めずに続けます。タブを閉じると、入力した内容は消えます。あとで右上の「保存・開く」から保存できます。', 'close') + '</div>',
-    { create: dfPickCreate, open: dfPickOpen, close: closeFileDialog });
+    + '<p>入力した内容は、<b>まだどこにも保存されていません</b>。「新規作成」でファイルを作ると、これからは自動で保存します。</p>'
+    + (DF.dir ? `<p>保存するフォルダ：「${escHtml(DF.dir.name)}」</p>` : '<p>はじめてのときは、保存するフォルダを選ぶ画面が出ます。</p>') + PLACE_NOTE
+    + '<div class="fchoice">' + choiceBtn('新規作成', `新しいファイル（${escHtml(testLabel(dataFileName()))}）に保存します（おすすめ）。`, 'create', 1)
+    + choiceBtn('開く', '前に保存したテストの続きをするとき。今の画面の内容は、開いたテストの内容に置き換わります。', 'open')
+    + choiceBtn('閉じる', '保存せずに続けます。タブを閉じると、入力した内容は消えます。あとで右上の「保存・開く」から保存できます。', 'close') + '</div>',
+    { create: dfCreate, open: openListDialog, close: closeFileDialog });
 }
 /* 別のテストの正答を読み込んで、前のファイルから切り離したあと（v1.23） */
 function dfAskNewTest(prev){
-  const nm = escHtml(prev.handle.name);
+  const nm = escHtml(testLabel(prev.handle.name));
   const reuse = async () => {
-    if (!confirm(`「${prev.handle.name}」を、このテストの内容で上書きします。\n前のテストの正答・読み取り結果・名簿は、このファイルから消えます。\n上書きしますか？`)) return;
+    if (!confirm(`「${testLabel(prev.handle.name)}」のファイルを、このテストの内容で上書きします。\n前のテストの内容は「${BACKUP_DIR}」フォルダに残します。上書きしますか？`)) return;
     try {
       if (!await askPerm(prev.handle)){ alert(NOT_ALLOWED); return; }
-      DF.handle = prev.handle; DF.last = prev.handle; DF.lastMod = prev.state === 'ok' ? prev.lastMod : 0; DF.state = 'ok'; DF.err = '';
-      try { await idbSet('dataFile', prev.handle); } catch (e) { console.warn(e); }
+      await writeBackupFile(stemOf(prev.handle.name), await (await prev.handle.getFile()).text(), '上書き前', prev.fileDir);
+      DF.handle = prev.handle; DF.fileDir = prev.fileDir; DF.lastMod = 0; DF.state = 'ok'; DF.err = ''; DF.bkDay = ''; DF.bkAt = 0;
       await dfWrite(); closeFileDialog();
-      if (DF.state === 'ok') toast(`「${prev.handle.name}」に上書きしました`);
+      if (DF.state === 'ok') toast(`「${testLabel(prev.handle.name)}」のファイルに上書きしました`);
     } catch (e) { dfFail(e, 'ファイルに保存できませんでした'); }
   };
   showFileDialog('<h2>新規作成してください</h2>'
-    + `<p>前とは別のテストの正答を読み込みました。前のテストのファイル「<b>${nm}</b>」は、上書きせずにそのまま残しています。</p>`
+    + `<p>前とは別のテストの正答を読み込みました。前のテスト「<b>${nm}</b>」のファイルは、上書きせずにそのまま残しています。</p>`
     + '<p>このテスト用に、新しいファイルを作ってください。作るまでは、どこにも保存されません。</p>'
-    + '<div class="fchoice">' + choiceBtn('新規作成', `このテスト用のファイル（例：<code>${escHtml(dataFileName())}</code>）を作り、これからはそこに自動で保存します（おすすめ）。`, 'create', 1)
-    + choiceBtn('前のファイルに上書き', `「${nm}」の中身を、このテストに置き換えます。前のテストのデータは消えます。`, 'reuse')
+    + '<div class="fchoice">' + choiceBtn('新規作成', `このテスト用のファイル（${escHtml(testLabel(dataFileName()))}）を作り、これからはそこに自動で保存します（おすすめ）。`, 'create', 1)
+    + choiceBtn('前のファイルに上書き', `「${nm}」のファイルの中身を、このテストに置き換えます。`, 'reuse')
     + choiceBtn('閉じる', '今は保存しません。タブを閉じると、入力した内容は消えます。あとで右上の「保存・開く」から保存できます。', 'close') + '</div>',
-    { create: dfPickCreate, reuse, close: closeFileDialog });
+    { create: dfCreate, reuse, close: closeFileDialog });
 }
 /* 前の版（1.25 まで）の控えに、ファイルに保存していない内容があったとき */
 function openOldCopyDialog(){
@@ -2780,34 +2875,40 @@ function openOldCopyDialog(){
     + `<p>前の版のアプリが、<b>ファイルに保存していない内容</b>をこのブラウザの中に残していました（テスト名：${escHtml(state.settings.testName || '無題')}）。画面に出しています。</p>`
     + '<p>この版からは、ブラウザの中には保存しません。消えないよう、ファイルに保存してください。</p>'
     + '<div class="fchoice">' + choiceBtn('新規作成', 'この内容を、新しいファイルに保存します（おすすめ）。', 'create', 1)
-    + choiceBtn('開く', '前に保存したファイルの続きをするとき。この内容は使わず、開いたファイルの内容にします。', 'open')
-    + choiceBtn('バックアップとして書き出す', 'この内容をバックアップのファイルにして、ブラウザの中からは消します。', 'backup')
+    + choiceBtn('開く', '前に保存したテストの続きをするとき。この内容は使わず、開いたテストの内容にします。', 'open')
     + choiceBtn('閉じる', '今は決めません（次に開いたときも、この画面が出ます）。', 'close') + '</div>',
-    { create: dfPickCreate, open: dfPickOpen, close: closeFileDialog,
-      backup: () => { writeBackup(); clearOldCopy(); oldCopyPending = false; DF.dirty = false; closeFileDialog(); renderFileBar(); showSaveState(); } });
+    { create: dfCreate, open: openListDialog, close: closeFileDialog });
 }
 function closeFileDialog(){ const d = $('#dlgFile'); if (d.open) d.close(); }
 $('#btnDataFile').onclick = () => openFileDialog();
 
 async function dfInit(){
   const old = readOldCopy();
-  let hd = null;
-  if (fsSupported()){ try { hd = await idbGet('dataFile'); } catch (e) { console.warn(e); } }
-  DF.last = hd || null;
+  let dir = null, last = '', oldH = null;
+  if (fsSupported()){
+    try { dir = await idbGet('dataDir'); last = (await idbGet('dataFileName')) || ''; oldH = await idbGet('dataFile'); } catch (e) { console.warn(e); }
+  }
+  DF.dir = dir || null; DF.oldHandle = oldH || null; DF.lastName = last || (oldH ? oldH.name : '');
   // 前の版の控え：ファイルに書いていない印があるか、ファイルを使っていなかったら（1.20 までの使い方）、画面に出してファイルに移してもらう
   const oldHas = old && old.d && old.d.settings && ((old.d.results || []).length || old.d.settings.testName || (old.d.settings.key || []).some(k => k !== null));
-  if (oldHas && (old.unsaved || !hd)){
+  if (oldHas && (old.unsaved || (!dir && !oldH))){
     Object.assign(state.settings, old.d.settings); state.results = old.d.results || []; state.roster = old.d.roster || [];
     normalizeSettings(); initInputs(); renderSettings();
     oldCopyPending = true; DF.dirty = true; DF.asked = true;
   } else if (old && fsSupported()) clearOldCopy();   // 中身はファイルにあるので、ブラウザの中の控えは消す
   if (!fsSupported()){ DF.state = 'unsupported'; renderFileBar(); showSaveState(); return; }
-  if (oldCopyPending){ renderFileBar(); showSaveState(); openOldCopyDialog(); return; }
-  if (hd){
-    try { if ((await hd.queryPermission({ mode: 'readwrite' })) === 'granted' && await dfOpenHandle(hd)) return; } catch (e) { console.warn(e); }
-    renderFileBar(); showSaveState(); openStartDialog(); return;
-  }
   renderFileBar(); showSaveState();
+  if (oldCopyPending){ openOldCopyDialog(); return; }
+  if (dir){
+    try {
+      if ((await dir.queryPermission({ mode: 'readwrite' })) === 'granted'){
+        if (last){ try { if (await dfOpenHandle(await dir.getFileHandle(last), dir)) return; } catch (e) { console.warn(e); } }
+        openListDialog(); return;
+      }
+    } catch (e) { console.warn(e); }
+    openStartDialog(); return;
+  }
+  if (oldH) openStartDialog();
 }
 // ファイルに書いていない変更があるうちは、タブを閉じる前に確認を出す（v1.26。ブラウザの中には残らないため）
 window.addEventListener('beforeunload', e => { if (DF.dirty || DF.writing){ e.preventDefault(); e.returnValue = ''; } });
@@ -2817,12 +2918,12 @@ function showSaveState(){
   const t = ts => new Date(ts).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
   const el = $('#saveState');
   if (practiceSnapshot) el.textContent = '練習中は保存しません';
-  else if (DF.state === 'ok') el.textContent = DF.writing ? '保存しています…' : `「${DF.handle.name}」に保存${DF.savedAt ? 'しました ' + t(DF.savedAt) : 'します'}`;
+  else if (DF.state === 'ok') el.textContent = DF.writing ? '保存しています…' : `「${testLabel(DF.handle.name)}」に保存${DF.savedAt ? 'しました ' + t(DF.savedAt) : 'します'}`;
   else el.textContent = DF.dirty && hasContent() ? 'まだ保存していません' : '';
 }
 /* 上部の帯：ファイルに保存できていないときだけ出す */
 function renderFileBar(){
-  const bar = $('#fileBar'), nm = DF.handle ? `「${DF.handle.name}」` : '';
+  const bar = $('#fileBar'), nm = DF.handle ? `「${testLabel(DF.handle.name)}」` : '';
   const set = (cls, msg, btns) => {
     bar.hidden = false; bar.className = cls; bar.innerHTML = '';
     const span = document.createElement('span'); span.textContent = msg; bar.appendChild(span);
@@ -2830,12 +2931,12 @@ function renderFileBar(){
   };
   if (DF.state === 'ok' || practiceSnapshot){ bar.hidden = true; return; }
   if (DF.state === 'none'){
-    if (DF.dirty && hasContent()) set('warn', '⚠ 入力した内容は、まだファイルに保存していません。タブを閉じると消えます。', [['新規作成', dfPickCreate, 1], ['開く', dfPickOpen]]);
+    if (DF.dirty && hasContent()) set('warn', '⚠ 入力した内容は、まだファイルに保存していません。タブを閉じると消えます。', [['新規作成', dfCreate, 1], ['開く', openListDialog]]);
     else bar.hidden = true;
   }
-  else if (DF.state === 'error') set('bad', `⚠ ファイル${nm}に保存できませんでした（${DF.err}）。保存できるまで、このタブを閉じないでください。`, [['もう一度保存', dfRetry, 1], ['バックアップを書き出す', writeBackup], ['新規作成', dfPickCreate]]);
-  else if (DF.state === 'conflict') set('bad', `⚠ ほかの画面かパソコンで、ファイル${nm}が変更されました。上書きしないよう、自動保存を止めています。`, [['変更を読み込む', dfReopen, 1], ['この画面の内容で上書き', dfOverwrite]]);
-  else set('warn', '⚠ このブラウザはファイルに保存できません。Chrome か Edge で開いてください（今の内容は、タブを閉じると消えます。残すときは「バックアップを保存」を押してください）。', []);
+  else if (DF.state === 'error') set('bad', `⚠ ${nm}のファイルに保存できませんでした（${DF.err}）。保存できるまで、このタブを閉じないでください。`, [['もう一度保存', dfRetry, 1], ['新規作成', dfCreate]]);
+  else if (DF.state === 'conflict') set('bad', `⚠ ほかの画面かパソコンで、${nm}のファイルが変更されました。上書きしないよう、自動保存を止めています。`, [['変更を読み込む', dfReopen, 1], ['この画面の内容で上書き', dfOverwrite]]);
+  else set('warn', '⚠ このブラウザはファイルに保存できません。Chrome か Edge で開いてください（今の内容は、タブを閉じると消えます）。', []);
 }
 
 /* ---- 起動 ---- */
