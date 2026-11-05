@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.29
+ マークシート採点アプリ  ver 1.30
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -111,6 +111,9 @@ ol.tips li{margin:4px 0}
 .drop{border:2px dashed var(--line);border-radius:var(--radius);padding:36px 20px;text-align:center;background:#fff;transition:border-color .15s,background .15s}
 .drop.over{border-color:var(--rose);background:var(--rose-soft)}
 .drop p{margin:6px 0}
+#keyDrop{border:2px dashed var(--line);transition:border-color .15s,background .15s}
+#keyDrop.over{border-color:var(--rose);background:var(--rose-soft)}
+.key-drop-h{margin:0 0 10px;font-size:14px}
 .progress{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:12px}
 .progress i{display:block;height:100%;width:0;background:var(--rose);transition:width .2s}
 .log{font-size:13px;color:var(--ink-soft);margin-top:8px;max-height:140px;overflow:auto}
@@ -118,6 +121,16 @@ input[type=range]{accent-color:var(--rose);width:220px}
 
 /* 結果 */
 .summary{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:6px}
+.th-live{margin:8px 0 0;font-size:14px}
+.th-row{gap:10px;align-items:center;margin-top:10px;font-size:14px}
+.out-h{font-size:15px;margin:16px 0 8px}
+.out-main{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.out-main .btn{text-align:left;padding:12px 16px}
+.out-main .btn small{display:block;font-weight:400;font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+.out-main .btn.main small{color:#fff}
+.out-more{margin-top:10px}
+.out-more summary{cursor:pointer;font-weight:700;font-size:14px}
+.out-more .row{margin-top:8px}
 .summary div{display:flex;flex-direction:column}
 .summary b{font-size:24px;font-variant-numeric:tabular-nums}
 .summary span{font-size:12px;color:var(--ink-soft)}
@@ -171,6 +184,8 @@ textarea.note-input,textarea.model-input{padding:8px 10px;border:1px solid var(-
 .tour-block{position:fixed;inset:0;z-index:49}
 #practiceBar{background:#2F6FD6;color:#fff;font-size:14px}
 /* データファイル（v1.21）：保存できていないときの帯と、保存先を選ぶ画面 */
+/* hidden を付けた部品は、display の指定があっても必ず隠す（v1.30。#fileBar の display:flex が hidden より強く、帯が消えなくなっていた） */
+[hidden]{display:none!important}
 #fileBar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 20px;font-size:14px;border-top:1px solid var(--line)}
 #fileBar.warn{background:var(--check-soft)}
 #fileBar.bad{background:var(--rose-soft)}
@@ -286,7 +301,8 @@ details.panel summary{cursor:pointer}
   <section class="step on" id="step1">
     <h2>正答と配点</h2>
     <p class="lead">テストの設問数と選択肢の数を決めて、正答を選びます。</p>
-    <div class="panel import-panel">
+    <div class="panel import-panel" id="keyDrop">
+      <p class="key-drop-h">テスト問題メーカーの「採点用JSON」のファイルを、<strong>ここにドラッグ</strong>するか、ボタンで選びます。</p>
       <div class="row" style="align-items:center;gap:12px">
         <label class="btn small" title="テスト問題メーカーの「採点用JSON」ボタンで保存したファイルを選びます">テスト問題メーカーの正答を読み込む<input type="file" id="fileKey" accept=".json" hidden></label>
         <span class="note" id="keySource" style="flex:1;min-width:260px"></span>
@@ -393,6 +409,7 @@ details.panel summary{cursor:pointer}
         <span class="note" id="thVal"></span>
       </div>
       <p class="note" style="margin:8px 0 0">あとから変更しても、読み取り済みの結果にすぐ反映されます。</p>
+      <p id="thLive" class="th-live"></p>
     </div>
     <div class="row">
       <button class="btn" id="btnClear">読み取り結果をすべて消す</button>
@@ -407,16 +424,25 @@ details.panel summary{cursor:pointer}
     <div class="panel">
       <div class="summary" id="summary"></div>
       <div class="note" id="classSummary"></div>
+      <div class="row th-row"><b>読み取りの感度</b><span class="note">薄い塗りも拾う</span><input type="range" id="th2" min="0.15" max="0.6" step="0.01"><span class="note">濃い塗りだけ</span><span class="note" id="thVal2"></span></div>
       <div class="row" style="margin-top:12px">
-        <button class="btn main" id="btnXlsxAll" title="全員の解答・得点を1つのExcelファイルにします。「全員」のシートと、組ごとのシートが入ります">採点結果をExcelで出力（全クラスを1ファイルに）</button>
-        <button class="btn" id="btnCsv">CSVで出力</button>
-        <button class="btn" id="btnXlsx" title="組・番号・氏名・観点ごとの点数・合計点だけの表をExcelファイルで書き出します。評定の表に貼り付けるときに使います">観点別の一覧をExcelで出力（評定用）</button>
-        <button class="btn" id="btnSlips" title="1人1枚。解答・正答・模範解答・得点を載せた、生徒に配る用紙を印刷します">個人票を印刷（生徒に配る）</button>
-        <button class="btn" id="btnKeySheet2" title="正答・正答の文言・配点・記述の模範解答を1枚に印刷します">模範解答を印刷</button>
-        <button class="btn" id="btnReport" title="平均点・得点分布・設問ごとの正答率・名簿を印刷します">成績一覧・分析を印刷</button>
         <button class="btn" id="btnNextCheck">次の要確認へ</button>
         <button class="btn" id="btnWritten" hidden>記述を採点する</button>
       </div>
+      <!-- 出力（v1.30）：よく使う3つを大きく、ほかは「そのほかの出力」にまとめた。ボタンの id は前と同じ -->
+      <h3 class="out-h">よく使う出力</h3>
+      <div class="out-main" id="outMain">
+        <button class="btn main" id="btnSlips">個人票を印刷<small>1人1枚。生徒に配る（解答・正答・得点）。載せる項目は下で選べます</small></button>
+        <button class="btn main" id="btnReport">成績一覧・分析を印刷<small>平均点・得点分布・組ごとの成績・設問ごとの正答率・名簿</small></button>
+        <button class="btn main" id="btnXlsxAll">全データをExcelで出力<small>全員の解答・得点を1つのファイルに（「全員」と組ごとのシート）</small></button>
+      </div>
+      <details class="out-more" id="outMore"><summary>そのほかの出力</summary>
+        <div class="row">
+          <button class="btn" id="btnXlsx" title="組・番号・氏名・観点ごとの点数・合計点だけの表をExcelファイルで書き出します。評定の表に貼り付けるときに使います">観点別の一覧をExcelで出力（評定用）</button>
+          <button class="btn" id="btnCsv" title="全員の解答・得点をCSVで書き出します">CSVで出力</button>
+          <button class="btn" id="btnKeySheet2" title="正答・正答の文言・配点・記述の模範解答を1枚に印刷します">模範解答を印刷</button>
+        </div>
+      </details>
       <div class="slip-opts" id="slipOpts">
         <span class="slip-opts-h">個人票に載せる項目</span>
         <!-- チェック欄は SLIP_OPTS から作る -->
@@ -451,7 +477,8 @@ details.panel summary{cursor:pointer}
       </ol>
       <h3>学年の全クラスをまとめて採点する</h3>
       <p>クラスごとにスキャンしたPDF（1組.pdf・2組.pdf…）は、「読み取り」の「ファイルを選ぶ」で<strong>まとめて選べます</strong>（Ctrl キーを押しながらクリック、または Ctrl＋A で全部選ぶ）。1クラスずつ続けて入れても、結果に追加されていきます。読み込んだファイルと枚数は、読み取りの画面の下に出ます。同じファイルをもう一度入れようとすると、確認が出ます。</p>
-      <p>「結果の確認と出力」の<strong>「採点結果をExcelで出力（全クラスを1ファイルに）」</strong>で、1つのExcelファイルにまとめて出力できます。1枚目の「全員」のシートに学年全員、そのあとに「1組」「2組」…のシートが入ります。各シートの下には正答・配点・正答率の行があり、組ごとのシートの正答率はその組だけで計算します。「観点別の一覧をExcelで出力（評定用）」も、組が2つ以上あれば組ごとのシートが付きます。</p>
+      <p>「結果の確認と出力」の<strong>「全データをExcelで出力」</strong>で、1つのExcelファイルにまとめて出力できます。1枚目の「全員」のシートに学年全員、そのあとに「1組」「2組」…のシートが入ります。各シートの下には正答・配点・正答率の行があり、組ごとのシートの正答率はその組だけで計算します。「観点別の一覧をExcelで出力（評定用）」（「そのほかの出力」の中）も、組が2つ以上あれば組ごとのシートが付きます。</p>
+      <p><strong>出力のボタン</strong>：よく使う「個人票を印刷」「成績一覧・分析を印刷」「全データをExcelで出力」を大きく並べています。「観点別の一覧をExcelで出力（評定用）」「CSVで出力」「模範解答を印刷」は、その下の<strong>「そのほかの出力」</strong>を開くと出ます。</p>
       <p>組は用紙にマークされた組の番号で分けます。組のマークが読めなかった用紙は「組が不明」のシートに入るので、結果の画面で直してから出力してください。</p>
       <h3>テスト問題メーカーで作ったテスト</h3>
       <p>テスト問題メーカーの画面上の「採点用JSON」で保存したファイルを、「正答と配点」の<strong>「テスト問題メーカーの正答を読み込む」</strong>で選ぶと、学年・テスト名（問題用紙の題名）・用紙に載せる文（問題用紙の注意書き）・設問数・選択肢の数・正答・配点・正答の文言（個人票に載る）・記述欄（見出し・配点・模範解答）が自動で入ります。テスト問題メーカーで観点を付けていれば、観点の名前と1問ごとの観点も入ります。このアプリで入れるのは、ふつうは名簿だけです。用紙に載せる文をこのアプリで書き直したときは、読み込み直してもその文を残します。手で入れ直す必要はありません。読み込んだあとも、画面で直せます（直した内容はテスト問題メーカーには戻りません）。</p>
@@ -489,6 +516,7 @@ details.panel summary{cursor:pointer}
         <li>「位置合わせマークが見つかりません」→ 四隅の黒い四角が欠けていないか、用紙が大きく傾いていないか確認します。</li>
         <li>塗ったのに無回答になる → 「読み取り」の感度を「薄い塗りも拾う」側へ動かします。</li>
         <li>消し跡を拾ってしまう → 感度を「濃い塗りだけ」側へ動かします。</li>
+        <li>感度は「結果の確認と出力」の画面にもあります。動かすと、要確認の人数・平均点と結果の一覧がすぐ変わるので、見比べながらちょうどよい所を探せます。</li>
         <li>PDFが読み込めない → PDFが壊れていないか、複合機で保存し直したPDFで試してください。うまくいかない場合はJPG/PNGでスキャンしてください。</li>
         <li>両面スキャンで裏面の白紙が入った → 白紙のページは自動で飛ばします（読み取り後に「白紙のページ ○枚は飛ばしました」と出ます）。</li>
       </ul>
@@ -500,7 +528,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.29（アプリを開くと、前回のテストを自動で開かず、はじめに「開く」「新規作成」「閉じる」を選ぶ画面を出す（別のテストのつもりで前のテストに入力しないように）。用紙は1.8と同じ）<br>1.28（「新規作成」で学年とテスト名を入れて、すぐにファイルを作るようにした。テストを開いているときは、白紙から始めるか、今のテストの正答・配点や名簿を使うかを選べる（前は、開いているテストのファイルに戻ってしまい、手で入れた内容がそのファイルに保存されていた）。用紙は1.8と同じ）<br>1.27（はじめに「保存するフォルダ」を選び、その中にテストごとのファイルを作る形にした。「開く」はフォルダの中のテストの一覧から選ぶ。毎日のバックアップを同じフォルダの「バックアップ」に自動で残し（30日分）、「前の日の状態に戻す」で戻せる。手動のバックアップのボタンはやめた。用紙は1.8と同じ）<br>1.26（ブラウザの中に控えを残すのをやめ、データはファイルにだけ保存する。ボタンを「保存・開く」「開く」「新規作成」「バックアップから戻す」にした。ファイルに保存していない内容があるうちは、画面の上に知らせ、タブを閉じるときに確認を出す。用紙は1.8と同じ）<br>1.25（名簿を読み込むと、画面に名簿の一覧と、名簿にない組・番号の用紙を出す。名簿のCSVは1行目の見出し（学年・組・番号・氏名・フリガナ）から列を見分け、「学年・組・番号・氏名」の順や「1組」「5番」の書き方でも読める。データファイルを開く前に別のテストの正答を読み込んだときも、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.24（解答用紙の見出しに必ず「解答用紙」を入れる。印刷の画面で「PDFに保存」したときのファイル名を、印刷物の見出しと同じにする。読み取る位置は1.8と同じ）<br>1.23（別のテストの正答を読み込んだときは、前のテストのデータファイルに上書きせず、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.22（テスト問題メーカーの採点用JSONから、学年・題名（テスト名）・注意書き（解答用紙に載せる文）も入れるようにした。長いテスト名は解答用紙の見出しを自動で小さくする。用紙は1.8と同じ）<br>1.21（データをデータファイル（.json）に自動で保存するようにした。別のPC・ブラウザでも同じデータを使える。用紙は1.8と同じ）<br>1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.30（読み取りの感度を動かすと、要確認の数・平均点と結果の一覧がすぐ変わる（「結果の確認と出力」にも感度を置いた）。テスト問題メーカーの正答のファイルをドロップで読み込める。出力のボタンを「よく使う出力」（個人票・成績一覧・分析・全データのExcel）と「そのほかの出力」に分けた。用紙は1.8と同じ）<br>1.29（アプリを開くと、前回のテストを自動で開かず、はじめに「開く」「新規作成」「閉じる」を選ぶ画面を出す（別のテストのつもりで前のテストに入力しないように）。用紙は1.8と同じ）<br>1.28（「新規作成」で学年とテスト名を入れて、すぐにファイルを作るようにした。テストを開いているときは、白紙から始めるか、今のテストの正答・配点や名簿を使うかを選べる（前は、開いているテストのファイルに戻ってしまい、手で入れた内容がそのファイルに保存されていた）。用紙は1.8と同じ）<br>1.27（はじめに「保存するフォルダ」を選び、その中にテストごとのファイルを作る形にした。「開く」はフォルダの中のテストの一覧から選ぶ。毎日のバックアップを同じフォルダの「バックアップ」に自動で残し（30日分）、「前の日の状態に戻す」で戻せる。手動のバックアップのボタンはやめた。用紙は1.8と同じ）<br>1.26（ブラウザの中に控えを残すのをやめ、データはファイルにだけ保存する。ボタンを「保存・開く」「開く」「新規作成」「バックアップから戻す」にした。ファイルに保存していない内容があるうちは、画面の上に知らせ、タブを閉じるときに確認を出す。用紙は1.8と同じ）<br>1.25（名簿を読み込むと、画面に名簿の一覧と、名簿にない組・番号の用紙を出す。名簿のCSVは1行目の見出し（学年・組・番号・氏名・フリガナ）から列を見分け、「学年・組・番号・氏名」の順や「1組」「5番」の書き方でも読める。データファイルを開く前に別のテストの正答を読み込んだときも、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.24（解答用紙の見出しに必ず「解答用紙」を入れる。印刷の画面で「PDFに保存」したときのファイル名を、印刷物の見出しと同じにする。読み取る位置は1.8と同じ）<br>1.23（別のテストの正答を読み込んだときは、前のテストのデータファイルに上書きせず、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.22（テスト問題メーカーの採点用JSONから、学年・題名（テスト名）・注意書き（解答用紙に載せる文）も入れるようにした。長いテスト名は解答用紙の見出しを自動で小さくする。用紙は1.8と同じ）<br>1.21（データをデータファイル（.json）に自動で保存するようにした。別のPC・ブラウザでも同じデータを使える。用紙は1.8と同じ）<br>1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -928,7 +956,7 @@ function showStep(n){
   document.querySelectorAll('section.step').forEach(s => s.classList.remove('on'));
   $(n === 'help' ? '#stepHelp' : '#step' + n).classList.add('on');
   if (n == 2) renderSheetPreview();
-  if (n == 3) renderScanFiles();
+  if (n == 3){ renderScanFiles(); updateThLive(); }
   if (n == 4) renderResults();
   window.scrollTo(0, 0);
 }
@@ -1200,8 +1228,8 @@ function updateKeySource(){
     ? `テスト問題メーカーの「${src.name || src.title}」の正答を読み込んでいます（${new Date(src.importedAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}）。ここで直した内容は、テスト問題メーカーには戻りません。`
     : 'テスト問題メーカーで作ったテストなら、「採点用JSON」のファイルを読み込むと、学年・テスト名・注意書き・正答・配点・観点・記述欄が自動で入ります。下の欄に手で入力してもかまいません。';
 }
-$('#fileKey').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+/** テスト問題メーカーの採点用JSONを読み込む（ボタン・ドロップから。v1.30 でドロップを足した） */
+async function loadKeyFile(f){
   if (practiceSnapshot){ toast('練習中は読み込めません。先に「練習を終えて元に戻す」を押してください'); return; }
   let d; try { d = JSON.parse(await f.text()); } catch (err) { alert('ファイルを読み取れませんでした。テスト問題メーカーの「採点用JSON」ボタンで保存したファイル（.json）を選んでください。'); return; }
   const p = parseAnswerKey(d);
@@ -1213,7 +1241,18 @@ $('#fileKey').onchange = async e => {
   const msg = `読み込みました：${st.grade ? st.grade + '年　' : ''}${st.testName}　マーク式 ${st.nQ}問（選択肢${st.nC}個）${st.written.length ? `、記述 ${st.written.length}問` : ''}、満点 ${f2.total}点`;
   if (notes.length) alert(msg + '\n\n確かめてください：\n' + notes.map(t => '・' + t).join('\n')); else toast(msg);
   if (notes.detached) dfAskNewTest(notes.detached);
-};
+}
+$('#fileKey').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) loadKeyFile(f); };
+{ // 「正答と配点」の読み込みの枠にドロップ
+  const kd = $('#keyDrop');
+  ['dragenter', 'dragover'].forEach(ev => kd.addEventListener(ev, e => { e.preventDefault(); kd.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => kd.addEventListener(ev, e => { e.preventDefault(); kd.classList.remove('over'); }));
+  kd.addEventListener('drop', e => {
+    e.stopPropagation();
+    const f = [...e.dataTransfer.files].find(x => /\.json$/i.test(x.name));
+    if (f) loadKeyFile(f); else alert('テスト問題メーカーの「採点用JSON」（.json のファイル）をドロップしてください。');
+  });
+}
 
 /* ---- STEP 2：解答用紙（SVG）---- */
 /** 解答用紙の見出し（v1.24）。テスト名に「解答用紙」が入っていなければ後ろに足す（問題用紙と取り違えないように） */
@@ -1354,7 +1393,16 @@ window.addEventListener('DOMContentLoaded', () => {
 const drop = $('#drop');
 ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-drop.addEventListener('drop', e => handleFiles([...e.dataTransfer.files]));
+drop.addEventListener('drop', e => { e.stopPropagation(); routeDrop([...e.dataTransfer.files]); });
+/** 落としたファイルの種類で振り分ける（v1.30）。.json は正答（テスト問題メーカー）、PDF・画像は読み取り */
+function routeDrop(files){
+  const key = files.find(f => /\.json$/i.test(f.name)), scans = files.filter(f => !/\.json$/i.test(f.name));
+  if (key){ showStep(1); loadKeyFile(key); return; }
+  if (scans.length){ showStep(3); handleFiles(scans); }
+}
+// 枠の外に落としても、ブラウザがファイルを開いて（今の画面が消えて）しまわないようにし、種類で振り分ける
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files.length) routeDrop([...e.dataTransfer.files]); });
 $('#fileScan').onchange = e => { handleFiles([...e.target.files]); e.target.value = ''; };
 
 const TARGET_W = 1400;   // 解析する画像の横幅(px)。A4で約170dpi相当
@@ -1435,7 +1483,27 @@ async function handleFiles(files, madePages = []){
   }
   busy = false;
 }
-$('#th').oninput = e => { state.settings.threshold = +e.target.value; $('#thVal').textContent = '現在 ' + Math.round(state.settings.threshold*100); autosave(); };
+/** 読み取りの感度（v1.30）。判定は表示のたびに fills としきい値から出しているので、変えるとすぐ結果が変わる。
+    「読み取り」と「結果の確認と出力」の両方に置き、どちらを動かしても同じにする。結果の一覧は少し待ってから描き直す（動かしている間に重くならないように） */
+let thTimer = null;
+function setThreshold(v){
+  state.settings.threshold = +v;
+  ['#th', '#th2'].forEach(id => { if (+$(id).value !== +v) $(id).value = v; });
+  ['#thVal', '#thVal2'].forEach(id => $(id).textContent = '現在 ' + Math.round(state.settings.threshold * 100));
+  updateThLive();
+  clearTimeout(thTimer); thTimer = setTimeout(() => { if ($('#step4').classList.contains('on')) renderResults(); }, 150);
+  autosave();
+}
+$('#th').oninput = e => setThreshold(e.target.value);
+$('#th2').oninput = e => setThreshold(e.target.value);
+/** 「読み取り」の感度の下：要確認の人数・あいまいなマークの数・平均点 */
+function updateThLive(){
+  const list = state.results.filter(r => !r.error), el = $('#thLive');
+  if (!list.length){ el.textContent = '用紙を読み取ると、ここに要確認の人数と平均点が出ます。感度を動かすと、すぐ変わります。'; return; }
+  let cells = 0; list.forEach(r => { for (let q = 0; q < state.settings.nQ; q++) if (answerOf(r, q).check) cells++; });
+  const avg = list.reduce((a, r) => a + scoreOf(r), 0) / list.length;
+  el.innerHTML = `読み取り済み <b>${list.length}</b>人：要確認 <b>${state.results.filter(needsCheck).length}</b>人（あいまいなマーク ${cells}か所）・平均点 <b>${avg.toFixed(1)}</b>点`;
+}
 $('#btnClear').onclick = () => {
   if (!state.results.length) return;
   if (!confirm(`読み取り結果 ${state.results.length}件をすべて消します。正答と配点は残ります。よろしいですか？`)) return;
@@ -1446,6 +1514,7 @@ $('#btnClear').onclick = () => {
 /* ---- STEP 4：結果 ---- */
 let selected = null;
 function renderResults(){
+  updateThLive();
   if ($('#rosterBox').open) renderRosterView();   // v1.25 名簿の一覧を開いていれば、読み取り結果に合わせて直す
   const s = state.settings, list = sortedResults(), dup = duplicateIds();
   const valid = list.filter(r => !r.error), scores = valid.map(scoreOf);
@@ -2412,7 +2481,7 @@ $('#btnPractice2').onclick = () => { if (startPractice()) startTour(1); };
 const TOUR = [
   { step: 1, title: 'ようこそ', text: 'マークシートの採点アプリです。複合機でまとめてスキャンしたPDFを読み込むと、マーク式を自動で採点します。記述式は画像を見ながら点数を入れます。<br>これから画面を順番に案内します（約2分）。' },
   { step: 1, sel: 'nav.steps', title: '4つの手順', text: '上から順に「1 正答と配点 → 2 解答用紙の印刷 → 3 読み取り → 4 結果の確認と出力」と進めます。いつでもこのタブで行き来できます。' },
-  { step: 1, sel: '#keySource', up: '.panel', title: 'テスト問題メーカーから読み込む', text: 'テスト問題メーカーでテストを作った場合は、「採点用JSON」のファイルをここで読み込むと、学年・テスト名・注意書き・正答・配点・観点などが自動で入り、このアプリで入れることはほとんどありません。使わない場合は、下の欄に手で入力します。' },
+  { step: 1, sel: '#keyDrop', title: 'テスト問題メーカーから読み込む', text: 'テスト問題メーカーでテストを作った場合は、「採点用JSON」のファイルをこの枠にドラッグする（またはボタンで選ぶ）と、学年・テスト名・注意書き・正答・配点・観点などが自動で入り、このアプリで入れることはほとんどありません。使わない場合は、下の欄に手で入力します。' },
   { step: 1, sel: '#testName', up: '.panel', title: 'テストの基本', text: '学年・テスト名・設問数・選択肢の数を決めます。学年を選ぶと解答用紙に印字されます。下の枠には、用紙に載せる注意事項を書けます。' },
   { step: 1, sel: '#keyGrid', up: '.panel', title: '正答と配点', text: '問題ごとに正しい選択肢のボタンを押し、右の欄に配点を入れます。配点は上の「全問に適用」でまとめて変えられます。' },
   { step: 1, sel: '#nW', up: '.panel', title: '記述式の問題（必要なときだけ）', text: '記述式がある場合は欄の数と高さを決めます。解答用紙の下のほうに記述欄が印刷されます。' },
@@ -2423,10 +2492,10 @@ const TOUR = [
   { step: 3, sel: () => practiceSnapshot ? '#practiceScan' : '#drop', title: '読み取り',
     text: () => practiceSnapshot ? '本番では、回収した用紙を複合機でまとめてスキャンしたPDFをここに入れます。<br><strong>練習では、ガイドを閉じたあとにこの青いボタンを押してみてください。</strong>サンプルの用紙6枚が読み取られます。'
                                  : '回収した用紙を複合機でまとめてスキャンし、そのPDFをここにドラッグします。1ページを1人分として読み取ります。両面スキャンの白紙ページは自動で飛ばします。<br>クラスごとのPDFは、まとめて選んでかまいません。' },
-  { step: 3, sel: '#th', up: '.panel', title: '読み取りの感度', text: '薄い塗りを拾えないときや、消し跡を拾ってしまうときに動かします。動かすと、読み取り済みの結果にもすぐ反映されます。' },
+  { step: 3, sel: '#th', up: '.panel', title: '読み取りの感度', text: '薄い塗りを拾えないときや、消し跡を拾ってしまうときに動かします。動かすと、すぐ下の要確認の人数・平均点が変わります。「結果の確認と出力」の画面にも同じものがあり、結果の一覧を見ながら動かせます。' },
   { step: 4, sel: '#summary', up: '.panel', title: '結果の確認', text: '人数・平均点などが出ます。<strong>黄色の欄</strong>は機械の判定があいまいな箇所です。「次の要確認へ」で順に確認し、表の行を押すと用紙の画像を見ながら直せます。' },
   { step: 4, sel: '#btnWritten', title: '記述の採点', text: '記述式がある場合はここを押します。問題ごとに全員の答えが画像で並ぶので、点数を入れて Enter で次の人へ進みます。' },
-  { step: 4, sel: '#btnSlips', up: '.row', title: '出力', text: '<strong>採点結果のExcel</strong>（全員と組ごとのシートが1つのファイルに入る）、CSV、<strong>観点別の一覧</strong>（評定の表に貼り付ける用のExcel）、<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>模範解答</strong>（採点前でも印刷できる）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）を出せます。印刷画面で「PDFに保存」も選べます。' },
+  { step: 4, sel: '#outMain', title: 'よく使う出力', text: '<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）、<strong>全データのExcel</strong>（全員と組ごとのシートが1つのファイルに入る）です。印刷画面で「PDFに保存」も選べます。<strong>観点別の一覧</strong>（評定の表に貼り付ける用のExcel）・CSV・<strong>模範解答</strong>は、下の「そのほかの出力」を開くと出ます。' },
   { step: 4, sel: '#slipOpts', title: '個人票に載せる項目', text: '平均点・組の平均点・順位・偏差値・得点分布などを、個人票に載せるかどうかここで選べます。はじめは平均点だけが載ります。' },
   { step: 4, sel: '#rosterState', up: '.row', title: '名簿（氏名）', text: '組・番号・氏名の列のCSVを読み込むと、個人票や一覧に氏名が入ります。4列目にフリガナを入れると、個人票に出ます。一度読み込めば次のテストでも使えます。読み込むと、下の「名簿を見る」で名簿の一覧と、名簿にない組・番号の用紙を確かめられます。' },
   { step: 4, sel: '#btnDataFile', title: '保存・開く', text: '正答・読み取り結果・名簿は、保存するフォルダの中の、テストごとのファイル（.json）に自動で保存されます。新しいテストは「新規作成」（学年とテスト名を入れると、すぐにファイルができます）、前のテストの続きは「開く」です。毎日のバックアップも同じフォルダに自動で残り、「前の日の状態に戻す」で戻せます。' },
@@ -2973,7 +3042,7 @@ function renderFileBar(){
 }
 
 /* ---- 起動 ---- */
-function initInputs(){ document.querySelectorAll('.note-input').forEach(el => el.value = state.settings.note || ''); updateNoteCount(); updateRosterState(); $('#th').value = state.settings.threshold; $('#thVal').textContent = '現在 ' + Math.round(state.settings.threshold*100); renderSlipOpts(); updateKeySource(); }
+function initInputs(){ document.querySelectorAll('.note-input').forEach(el => el.value = state.settings.note || ''); updateNoteCount(); updateRosterState(); $('#th').value = $('#th2').value = state.settings.threshold; $('#thVal').textContent = $('#thVal2').textContent = '現在 ' + Math.round(state.settings.threshold*100); updateThLive(); renderSlipOpts(); updateKeySource(); }
 normalizeSettings(); initInputs(); renderSettings();
 dfInit();   // 前回のデータファイルを開く（許可が残っていれば。無ければ「開く」の画面を出す）。前の版の控えがあればファイルに移してもらう
 // 初めて開いたとき（まだ何も入力していないとき）は画面ガイドを出す（v1.26 データはまだ読んでいないので、前の版の控えがあるかで見る）
