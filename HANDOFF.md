@@ -167,6 +167,7 @@
 - v1.15 テスト問題メーカーの「採点用JSON」の読み込み（`#fileKey`・`parseAnswerKey`・`applyAnswerKey`・`updateKeySource`。詳しくは上の「テスト問題メーカーとの連携」）。設定に `source`・`sections` を追加（古いバックアップは null・空で開く）
 - v1.16 クラスごとのPDFをまとめて読む使い方に合わせた（読み込み自体は前から複数ファイル対応）。結果に `file`（読み込んだファイル名）を追加し、`fileOf` で取る（古い結果は `source` から作る）。読み取り画面に `renderScanFiles`（ファイルと枚数）、結果画面に組ごとの人数・平均点（`#classSummary`）。同じファイル名をもう一度入れると確認を出す。`makeXlsx` を複数シート対応にし（引数が `[{ name, rows, widths }]` に変わった）、CSV の表を `detailRows` にまとめて Excel でも使う
 - v1.18 個人票：網かけ（`tr.miss`）をやめ、表の見出しの灰色もやめた。`fitSlips` で印刷前に画面の外へ並べて高さを測り、1ページを超える人だけ `zoom` で縮める。表は `table-layout:fixed`＋折り返しなし（`table.qt`）で行の高さをそろえ、入りきらない欄（`td.fit`。正答の内容）だけ文字を小さくする。平均点の（人数）を省いた。名簿に4列目のフリガナ（`kana`。ひらがなはカタカナにそろえる）を足し、`kanaOf` で引いて氏名の上に出す。コミットの見出しは誤って v1.17 と書いた（v1.17 は観点の読み込み）
+- v1.32 個人票の見出しは `.slip-head`（題名 `h1.fit1` は fitSlips で1行に収まるまで文字を小さくする）。得点分布は `.dist` の棒グラフで、人数の数字は出さない（いちばん多い区切りを高さ85%にした割合。0人は棒なし）
 - v1.31 用紙1枚の確認は `<dialog id="dlgDetail">` の中の `#detailArea`（`openDetail(uid)`・`moveDetail(±1)`。並びは `sortedResults`）。← → は select・input にいるときは使わない（解答の選び直しに使うため）。`renderDetail` は選んだ用紙が無くなると窓を閉じる。横に長い表の上のスクロールバーは `addTopScroll(wrap)`（ほかの表にも使える）
 - v1.30 感度は `setThreshold`（`#th`・`#th2` を同じにし、`updateThLive` と、結果の画面なら少し待って `renderResults`）。正答の読み込みは `loadKeyFile`（ボタン・`#keyDrop` のドロップ・画面のどこかのドロップ＝`routeDrop`）。出力は `#outMain`（よく使う3つ）と `#outMore`（details）。ボタンの id は前と同じ。`[hidden]{display:none!important}` を足した（`#fileBar` の display:flex で hidden が効かず、帯が消えていなかった）
 - v1.29 `dfInit` は前回のファイルを自動で開かず、いつも `openStartDialog` を出す（フォルダ・1.26 のファイル・画面ガイドを見た印のどれかがあるとき。どれも無いはじめての人には画面ガイドだけ）
