@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.30
+ マークシート採点アプリ  ver 1.31
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -149,14 +149,31 @@ td.score{font-weight:700;font-size:14px}
 tr.rate td{background:#F7F8FA;font-size:12px;color:var(--ink-soft);cursor:default}
 .badge{display:inline-block;background:var(--check);border-radius:10px;padding:0 8px;font-size:12px;font-weight:700}
 
-.detail{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;margin-top:16px}
+.detail{display:grid;grid-template-columns:minmax(0,1fr) 470px;gap:20px}
 @media(max-width:900px){.detail{grid-template-columns:1fr}}
-.detail canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
+/* v1.31 用紙の画像は窓の高さに収める。押すと幅いっぱいに大きくする（もう一度押すと戻る） */
+.detail canvas{display:block;max-width:100%;max-height:calc(100vh - 190px);width:auto;height:auto;margin:0 auto;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:zoom-in}
+.detail canvas.zoom{width:100%;max-height:none;cursor:zoom-out}
+/* v1.31 用紙1枚の確認は、画面いっぱいの窓（下のほうに出て見づらかったため） */
+#dlgDetail{width:min(1400px,96vw);max-width:96vw;height:94vh;max-height:94vh;padding:0;border:1px solid var(--line);border-radius:12px;color:var(--ink)}
+#dlgDetail[open]{display:flex;flex-direction:column}
+#dlgDetail::backdrop{background:rgba(0,0,0,.45)}
+.dd-nav{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:#F7F8FA;flex-wrap:wrap}
+.dd-nav .who{font-size:18px;font-weight:700;margin:0 6px}
+#detailArea{overflow:auto;padding:14px 16px;flex:1}
 .edit-list{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 12px;max-height:620px;overflow:auto;padding-right:4px}
 .edit-list label{display:flex;align-items:center;gap:6px;font-size:13px;padding:2px 4px;border-radius:5px}
 .edit-list label.chk{background:var(--check)}
 .edit-list label span{width:34px;text-align:right;font-weight:700}
 .edit-list select{padding:2px 4px;border:1px solid var(--line);border-radius:5px}
+.edit-list small{white-space:nowrap}
+/* v1.31 画像の横の解答にも正誤を出す（色だけに頼らず ○× と正答の文字で） */
+.edit-list .ok,.edit-list .ng{font-weight:700;white-space:nowrap}
+.edit-list .ok{color:var(--ok)}
+.edit-list .ng{color:var(--rose)}
+/* v1.31 表の上にも横のスクロールバー（下まで行かなくても左右に動かせるように） */
+.topscroll{overflow-x:auto;overflow-y:hidden;height:16px;margin-bottom:2px}
+.topscroll div{height:1px}
 
 .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:12px}
 @media(max-width:600px){.wgrid{grid-template-columns:1fr}}
@@ -221,7 +238,7 @@ details.panel summary{cursor:pointer}
   @page{size:A4 portrait;margin:0}
   @page report{size:A4 portrait;margin:12mm 12mm 10mm}
   body{background:#fff}
-  header.app,main,.toast,#practiceBar,#fileBar,#dlgFile,.tour-hole,.tour-card,.tour-block{display:none!important}
+  header.app,main,.toast,#practiceBar,#fileBar,#dlgFile,#dlgDetail,.tour-hole,.tour-card,.tour-block{display:none!important}
   #printArea{display:block}
   #printArea > svg{width:210mm;height:297mm;display:block}
 }
@@ -420,7 +437,7 @@ details.panel summary{cursor:pointer}
   <!-- STEP 4 -->
   <section class="step" id="step4">
     <h2>結果の確認と出力</h2>
-    <p class="lead">黄色の欄は機械の判定があいまいな箇所です。行をクリックすると用紙の画像を見ながら直せます。</p>
+    <p class="lead">黄色の欄は機械の判定があいまいな箇所です。表の行を押すと、用紙の画像を見ながら直せます（「次の生徒」や ← → キーで順に見られます）。</p>
     <div class="panel">
       <div class="summary" id="summary"></div>
       <div class="note" id="classSummary"></div>
@@ -458,7 +475,6 @@ details.panel summary{cursor:pointer}
     <div id="suspectWarn"></div>
     <div id="writtenArea"></div>
     <div id="resultArea"></div>
-    <div id="detailArea"></div>
   </section>
 
   <!-- HELP -->
@@ -473,7 +489,7 @@ details.panel summary{cursor:pointer}
         <li>「正答と配点」で学年・設問数・選択肢・正答・配点を入れる（学年は解答用紙に印字されます）。</li>
         <li>「解答用紙の印刷」で用紙を1枚印刷し、人数分コピーする。</li>
         <li>回収した用紙を複合機でまとめてスキャン（PDF）し、「読み取り」に入れる。クラスごとのPDFは、まとめて選べます。</li>
-        <li>「結果の確認と出力」で黄色の欄を確認し、Excel（またはCSV）で出力する。</li>
+        <li>「結果の確認と出力」で黄色の欄を確認し、Excel（またはCSV）で出力する。表の行を押すと用紙の画像と解答が大きく開き、「前の生徒」「次の生徒」（← → キー）で順に見られます。</li>
       </ol>
       <h3>学年の全クラスをまとめて採点する</h3>
       <p>クラスごとにスキャンしたPDF（1組.pdf・2組.pdf…）は、「読み取り」の「ファイルを選ぶ」で<strong>まとめて選べます</strong>（Ctrl キーを押しながらクリック、または Ctrl＋A で全部選ぶ）。1クラスずつ続けて入れても、結果に追加されていきます。読み込んだファイルと枚数は、読み取りの画面の下に出ます。同じファイルをもう一度入れようとすると、確認が出ます。</p>
@@ -528,13 +544,25 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.30（読み取りの感度を動かすと、要確認の数・平均点と結果の一覧がすぐ変わる（「結果の確認と出力」にも感度を置いた）。テスト問題メーカーの正答のファイルをドロップで読み込める。出力のボタンを「よく使う出力」（個人票・成績一覧・分析・全データのExcel）と「そのほかの出力」に分けた。用紙は1.8と同じ）<br>1.29（アプリを開くと、前回のテストを自動で開かず、はじめに「開く」「新規作成」「閉じる」を選ぶ画面を出す（別のテストのつもりで前のテストに入力しないように）。用紙は1.8と同じ）<br>1.28（「新規作成」で学年とテスト名を入れて、すぐにファイルを作るようにした。テストを開いているときは、白紙から始めるか、今のテストの正答・配点や名簿を使うかを選べる（前は、開いているテストのファイルに戻ってしまい、手で入れた内容がそのファイルに保存されていた）。用紙は1.8と同じ）<br>1.27（はじめに「保存するフォルダ」を選び、その中にテストごとのファイルを作る形にした。「開く」はフォルダの中のテストの一覧から選ぶ。毎日のバックアップを同じフォルダの「バックアップ」に自動で残し（30日分）、「前の日の状態に戻す」で戻せる。手動のバックアップのボタンはやめた。用紙は1.8と同じ）<br>1.26（ブラウザの中に控えを残すのをやめ、データはファイルにだけ保存する。ボタンを「保存・開く」「開く」「新規作成」「バックアップから戻す」にした。ファイルに保存していない内容があるうちは、画面の上に知らせ、タブを閉じるときに確認を出す。用紙は1.8と同じ）<br>1.25（名簿を読み込むと、画面に名簿の一覧と、名簿にない組・番号の用紙を出す。名簿のCSVは1行目の見出し（学年・組・番号・氏名・フリガナ）から列を見分け、「学年・組・番号・氏名」の順や「1組」「5番」の書き方でも読める。データファイルを開く前に別のテストの正答を読み込んだときも、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.24（解答用紙の見出しに必ず「解答用紙」を入れる。印刷の画面で「PDFに保存」したときのファイル名を、印刷物の見出しと同じにする。読み取る位置は1.8と同じ）<br>1.23（別のテストの正答を読み込んだときは、前のテストのデータファイルに上書きせず、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.22（テスト問題メーカーの採点用JSONから、学年・題名（テスト名）・注意書き（解答用紙に載せる文）も入れるようにした。長いテスト名は解答用紙の見出しを自動で小さくする。用紙は1.8と同じ）<br>1.21（データをデータファイル（.json）に自動で保存するようにした。別のPC・ブラウザでも同じデータを使える。用紙は1.8と同じ）<br>1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.31（結果の表の行を押すと、用紙の画像と解答を画面いっぱいの窓で開く。「前の生徒」「次の生徒」のボタンと ← → キーで順に見られる。画像の横の解答に ○× と正答を出す。結果の表の横スクロールバーを表の上にも付けた。用紙は1.8と同じ）<br>1.30（読み取りの感度を動かすと、要確認の数・平均点と結果の一覧がすぐ変わる（「結果の確認と出力」にも感度を置いた）。テスト問題メーカーの正答のファイルをドロップで読み込める。出力のボタンを「よく使う出力」（個人票・成績一覧・分析・全データのExcel）と「そのほかの出力」に分けた。用紙は1.8と同じ）<br>1.29（アプリを開くと、前回のテストを自動で開かず、はじめに「開く」「新規作成」「閉じる」を選ぶ画面を出す（別のテストのつもりで前のテストに入力しないように）。用紙は1.8と同じ）<br>1.28（「新規作成」で学年とテスト名を入れて、すぐにファイルを作るようにした。テストを開いているときは、白紙から始めるか、今のテストの正答・配点や名簿を使うかを選べる（前は、開いているテストのファイルに戻ってしまい、手で入れた内容がそのファイルに保存されていた）。用紙は1.8と同じ）<br>1.27（はじめに「保存するフォルダ」を選び、その中にテストごとのファイルを作る形にした。「開く」はフォルダの中のテストの一覧から選ぶ。毎日のバックアップを同じフォルダの「バックアップ」に自動で残し（30日分）、「前の日の状態に戻す」で戻せる。手動のバックアップのボタンはやめた。用紙は1.8と同じ）<br>1.26（ブラウザの中に控えを残すのをやめ、データはファイルにだけ保存する。ボタンを「保存・開く」「開く」「新規作成」「バックアップから戻す」にした。ファイルに保存していない内容があるうちは、画面の上に知らせ、タブを閉じるときに確認を出す。用紙は1.8と同じ）<br>1.25（名簿を読み込むと、画面に名簿の一覧と、名簿にない組・番号の用紙を出す。名簿のCSVは1行目の見出し（学年・組・番号・氏名・フリガナ）から列を見分け、「学年・組・番号・氏名」の順や「1組」「5番」の書き方でも読める。データファイルを開く前に別のテストの正答を読み込んだときも、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.24（解答用紙の見出しに必ず「解答用紙」を入れる。印刷の画面で「PDFに保存」したときのファイル名を、印刷物の見出しと同じにする。読み取る位置は1.8と同じ）<br>1.23（別のテストの正答を読み込んだときは、前のテストのデータファイルに上書きせず、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.22（テスト問題メーカーの採点用JSONから、学年・題名（テスト名）・注意書き（解答用紙に載せる文）も入れるようにした。長いテスト名は解答用紙の見出しを自動で小さくする。用紙は1.8と同じ）<br>1.21（データをデータファイル（.json）に自動で保存するようにした。別のPC・ブラウザでも同じデータを使える。用紙は1.8と同じ）<br>1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
 
 <div id="printArea"></div>
 <dialog id="dlgFile"><div id="fileBody"></div></dialog>
+<!-- v1.31 用紙1枚の確認・修正（結果の表の行を押すと開く） -->
+<dialog id="dlgDetail">
+  <div class="dd-nav">
+    <button class="btn small" id="ddPrev" title="← キーでも戻れます">← 前の生徒</button>
+    <span class="who" id="ddWho"></span>
+    <button class="btn small" id="ddNext" title="→ キーでも進めます">次の生徒 →</button>
+    <span class="note" id="ddPos"></span>
+    <button class="btn small" id="ddNextCheck">次の要確認へ</button>
+    <button class="btn small" id="ddClose" style="margin-left:auto">閉じる</button>
+  </div>
+  <div id="detailArea"></div>
+</dialog>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1578,18 +1606,64 @@ function renderResults(){
   });
   h += '</tr></tbody></table></div>';
   $('#resultArea').innerHTML = h;
-  $('#resultArea').querySelectorAll('tbody tr[data-uid]').forEach(tr => tr.onclick = () => { selected = tr.dataset.uid; renderResults(); renderDetail(); });
+  addTopScroll($('#resultArea .tablewrap'));
+  $('#resultArea').querySelectorAll('tbody tr[data-uid]').forEach(tr => tr.onclick = () => openDetail(tr.dataset.uid));
   renderDetail();
 }
 
+/** 横に長い表の上にも横のスクロールバーを付ける（v1.31）。上と下のバーは連動する。
+    表が画面の幅に収まるときは出さない */
+function addTopScroll(wrap){
+  if (!wrap) return;
+  const top = document.createElement('div'), inner = document.createElement('div');
+  top.className = 'topscroll'; top.appendChild(inner); wrap.before(top);
+  const fit = () => {   // 上のバーの動く幅を、表の動く幅とそろえる（表の枠線のぶん、ずれないように）
+    top.hidden = wrap.scrollWidth <= wrap.clientWidth + 1; if (top.hidden) return;
+    inner.style.width = (wrap.scrollWidth - wrap.clientWidth + top.clientWidth) + 'px'; top.scrollLeft = wrap.scrollLeft;
+  };
+  // 片方を動かすと、もう片方の scroll も起きる。同じ位置なら書かないので、行ったり来たりしない
+  const sync = (from, to) => from.addEventListener('scroll', () => { if (to.scrollLeft !== from.scrollLeft) to.scrollLeft = from.scrollLeft; });
+  sync(top, wrap); sync(wrap, top);
+  fit(); new ResizeObserver(fit).observe(wrap);
+}
+/* ---- 用紙1枚の確認（v1.31 から窓に出す。前・次の生徒へ ← → で進める） ---- */
+function openDetail(uid){
+  selected = uid; renderResults();
+  const d = $('#dlgDetail'); if (!d.open) d.showModal();
+  $('#detailArea').scrollTop = 0;
+}
+/** 表と同じ並び（組・番号の順）で、前（-1）・次（+1）の用紙へ */
+function moveDetail(step){
+  const list = sortedResults(), i = list.findIndex(r => r.uid === selected);
+  const r = list[i + step];
+  if (!r){ toast(step < 0 ? 'いちばん前の用紙です' : 'いちばん後ろの用紙です'); return; }
+  openDetail(r.uid);
+}
+$('#ddPrev').onclick = () => moveDetail(-1);
+$('#ddNext').onclick = () => moveDetail(1);
+$('#ddClose').onclick = () => $('#dlgDetail').close();
+$('#ddNextCheck').onclick = () => $('#btnNextCheck').onclick();
+$('#dlgDetail').addEventListener('close', () => {   // 閉じたら、表の中のその行が見えるように
+  const tr = $('#resultArea').querySelector('tr.sel'); if (tr) tr.scrollIntoView({ block: 'center' });
+});
+$('#dlgDetail').addEventListener('keydown', e => {
+  // 解答の選び直し（select）や番号の入力中は、← → をその欄に使わせる
+  if (e.target.closest('select,input,textarea') || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.key === 'ArrowLeft'){ e.preventDefault(); moveDetail(-1); }
+  else if (e.key === 'ArrowRight'){ e.preventDefault(); moveDetail(1); }
+});
 function renderDetail(){
-  const r = state.results.find(x => x.uid === selected), area = $('#detailArea');
-  if (!r){ area.innerHTML = ''; return; }
+  const r = state.results.find(x => x.uid === selected), area = $('#detailArea'), dlg = $('#dlgDetail');
+  if (!r){ area.innerHTML = ''; if (dlg.open) dlg.close(); return; }
   const s = state.settings, id = idOf(r);
-  let h = `<div class="panel detail"><div>
+  const list = sortedResults(), pos = list.indexOf(r);
+  $('#ddWho').textContent = r.error ? '読み取れなかった用紙' : `${idText(id)}${state.roster.length && nameOf(r) ? '　' + nameOf(r) : ''}`;
+  $('#ddPos').textContent = `${pos + 1}／${list.length}枚`;
+  $('#ddPrev').disabled = pos <= 0; $('#ddNext').disabled = pos >= list.length - 1;
+  let h = `<div class="detail"><div>
       <div class="row" style="justify-content:space-between;margin-bottom:8px"><strong>${escHtml(r.source)}</strong>
       <button class="btn small" id="btnDel">この用紙を削除</button></div>`;
-  h += images[r.uid] ? `<canvas id="scanView"></canvas><p class="note">赤い枠：読み取ったマーク／黄色：あいまいな箇所</p>`
+  h += images[r.uid] ? `<canvas id="scanView" title="押すと大きくなります"></canvas><p class="note">赤い枠：読み取ったマーク／黄色：あいまいな箇所。画像を押すと大きくなります。</p>`
                      : `<div class="warn">画像はデータファイルに入らないため、読み取ったときの画面でしか表示できません。必要なら元のPDFを見て確認してください。</div>`;
   h += `</div><div>`;
   if (r.error) h += `<div class="err">${r.error}。用紙を確認して再スキャンしてください。</div>`;
@@ -1607,7 +1681,9 @@ function renderDetail(){
         <option value="-2" ${a.value === -2 ? 'selected' : ''}>複数</option>`;
       for (let c = 0; c < s.nC; c++) h += `<option value="${c}" ${a.value === c ? 'selected' : ''}>${LAYOUT.labels[c]}</option>`;
       if (a.manual) h += `<option value="auto">自動判定に戻す</option>`;
-      h += `</select>${a.manual ? '<small class="note">修正済</small>' : ''}</label>`;
+      // v1.31 正誤：○／× 正答ア（採点しない問題は −）
+      const mark = !isScored(q) ? '<span class="note">−</span>' : isCorrect(q, a.value) ? '<span class="ok">○</span>' : `<span class="ng">× <small>正答${keyLabel(q)}</small></span>`;
+      h += `</select>${mark}${a.manual ? '<small class="note">修正済</small>' : ''}</label>`;
     }
     h += `</div>`;
     if (s.written.length){
@@ -1624,7 +1700,8 @@ function renderDetail(){
 
   $('#btnDel').onclick = () => {
     if (!confirm('この用紙の読み取り結果を削除しますか？')) return;
-    state.results = state.results.filter(x => x !== r); delete images[r.uid]; selected = null; autosave(); renderResults();
+    const list = sortedResults(), i = list.indexOf(r), nx = list[i + 1] || list[i - 1];   // 窓は閉じずに、となりの用紙へ
+    state.results = state.results.filter(x => x !== r); delete images[r.uid]; selected = nx ? nx.uid : null; autosave(); renderResults();
   };
   if (!r.error){
     const setId = () => { r.manualId = { kumi: $('#edKumi').value === '' ? '' : +$('#edKumi').value, ban: $('#edBan').value === '' ? '' : +$('#edBan').value }; autosave(); renderResults(); };
@@ -1644,7 +1721,7 @@ function renderDetail(){
       autosave(); renderResults();
     };
   }
-  if (images[r.uid]) drawScan(r);
+  if (images[r.uid]){ drawScan(r); $('#scanView').onclick = e => e.currentTarget.classList.toggle('zoom'); }
 }
 function drawScan(r){
   const cv = $('#scanView'), img = new Image();
@@ -1807,8 +1884,7 @@ $('#btnNextCheck').onclick = () => {
   const list = sortedResults(), i = list.findIndex(r => r.uid === selected);
   const next = list.slice(i + 1).concat(list.slice(0, i + 1)).find(needsCheck);
   if (!next){ toast('要確認の用紙はありません'); return; }
-  selected = next.uid; renderResults();
-  $('#detailArea').scrollIntoView({ behavior: 'smooth' });
+  openDetail(next.uid);
 };
 
 /* ============================================================
@@ -2493,7 +2569,7 @@ const TOUR = [
     text: () => practiceSnapshot ? '本番では、回収した用紙を複合機でまとめてスキャンしたPDFをここに入れます。<br><strong>練習では、ガイドを閉じたあとにこの青いボタンを押してみてください。</strong>サンプルの用紙6枚が読み取られます。'
                                  : '回収した用紙を複合機でまとめてスキャンし、そのPDFをここにドラッグします。1ページを1人分として読み取ります。両面スキャンの白紙ページは自動で飛ばします。<br>クラスごとのPDFは、まとめて選んでかまいません。' },
   { step: 3, sel: '#th', up: '.panel', title: '読み取りの感度', text: '薄い塗りを拾えないときや、消し跡を拾ってしまうときに動かします。動かすと、すぐ下の要確認の人数・平均点が変わります。「結果の確認と出力」の画面にも同じものがあり、結果の一覧を見ながら動かせます。' },
-  { step: 4, sel: '#summary', up: '.panel', title: '結果の確認', text: '人数・平均点などが出ます。<strong>黄色の欄</strong>は機械の判定があいまいな箇所です。「次の要確認へ」で順に確認し、表の行を押すと用紙の画像を見ながら直せます。' },
+  { step: 4, sel: '#summary', up: '.panel', title: '結果の確認', text: '人数・平均点などが出ます。<strong>黄色の欄</strong>は機械の判定があいまいな箇所です。「次の要確認へ」で順に確認し、表の行を押すと用紙の画像を見ながら直せます。開いた画面の「前の生徒」「次の生徒」（← → キー）で、1人ずつ順に見られます。' },
   { step: 4, sel: '#btnWritten', title: '記述の採点', text: '記述式がある場合はここを押します。問題ごとに全員の答えが画像で並ぶので、点数を入れて Enter で次の人へ進みます。' },
   { step: 4, sel: '#outMain', title: 'よく使う出力', text: '<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）、<strong>全データのExcel</strong>（全員と組ごとのシートが1つのファイルに入る）です。印刷画面で「PDFに保存」も選べます。<strong>観点別の一覧</strong>（評定の表に貼り付ける用のExcel）・CSV・<strong>模範解答</strong>は、下の「そのほかの出力」を開くと出ます。' },
   { step: 4, sel: '#slipOpts', title: '個人票に載せる項目', text: '平均点・組の平均点・順位・偏差値・得点分布などを、個人票に載せるかどうかここで選べます。はじめは平均点だけが載ります。' },
