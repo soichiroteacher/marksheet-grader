@@ -6,7 +6,7 @@
 <title>マークシート採点</title>
 <!--
 ============================================================
- マークシート採点アプリ  ver 1.39
+ マークシート採点アプリ  ver 1.40
 ------------------------------------------------------------
  ・このファイル1つで動きます。コピーするだけで引き継ぎできます。
  ・スキャンした画像はPCの外に送信しません（ブラウザ内で処理）。
@@ -16,7 +16,7 @@
  【コードの構成】（上から順に並んでいます）
    1. LAYOUT   … 解答用紙の寸法（印刷と読み取りの両方がここを参照）
    2. OMR      … 画像からマークを読む処理
-   3. 状態管理 … 設定・結果の保持、データファイルへの自動保存（v1.21。v1.26 からブラウザの中には保存しない。v1.27 から保存するフォルダを選び、毎日のバックアップを自動で残す）
+   3. 状態管理 … 設定・結果の保持、データファイルへの自動保存（v1.21。v1.26 からブラウザの中には保存しない。v1.27 から保存するフォルダを選び、毎日のバックアップを自動で残す。v1.40 からバックアップはその日はじめて編集する前の状態で、アプリでは消さない）
    4. 画面     … 各ステップの表示と操作
    5. 出力     … 採点結果のExcel（全員＋組ごとのシート）・CSV・観点別一覧のExcel（評定用）・個人票（生徒配布用）・模範解答（採点前でも印刷できる）・成績一覧と分析の印刷、バックアップ
 
@@ -344,9 +344,9 @@ details.panel summary{cursor:pointer}
     <h2>正答と配点</h2>
     <p class="lead">テストの設問数と選択肢の数を決めて、正答を選びます。</p>
     <div class="panel import-panel" id="keyDrop">
-      <p class="key-drop-h">テスト問題メーカーの「採点用JSON」のファイルを、<strong>ここにドラッグ</strong>するか、ボタンで選びます。</p>
+      <p class="key-drop-h">テスト問題作成の「採点用JSON」のファイルを、<strong>ここにドラッグ</strong>するか、ボタンで選びます。</p>
       <div class="row" style="align-items:center;gap:12px">
-        <label class="btn small" title="テスト問題メーカーの「採点用JSON」ボタンで保存したファイルを選びます">テスト問題メーカーの正答を読み込む<input type="file" id="fileKey" accept=".json" hidden></label>
+        <label class="btn small" title="テスト問題作成の「採点用JSON」ボタンで保存したファイルを選びます">テスト問題作成の正答を読み込む<input type="file" id="fileKey" accept=".json" hidden></label>
         <span class="note" id="keySource" style="flex:1;min-width:260px"></span>
       </div>
     </div>
@@ -522,8 +522,8 @@ details.panel summary{cursor:pointer}
       <p>「結果の確認と出力」の<strong>「全データをExcelで出力」</strong>で、1つのExcelファイルにまとめて出力できます。1枚目の「全員」のシートに学年全員、そのあとに「1組」「2組」…のシートが入ります。各シートの下には正答・配点・正答率の行があり、組ごとのシートの正答率はその組だけで計算します。「観点別の一覧をExcelで出力（評定用）」（「そのほかの出力」の中）も、組が2つ以上あれば組ごとのシートが付きます。</p>
       <p><strong>出力のボタン</strong>：よく使う「個人票を印刷」「成績一覧・分析を印刷」「全データをExcelで出力」を大きく並べています。「観点別の一覧をExcelで出力（評定用）」「CSVで出力」「模範解答を印刷」は、その下の<strong>「そのほかの出力」</strong>を開くと出ます。</p>
       <p>組は用紙にマークされた組の番号で分けます。組のマークが読めなかった用紙は「組が不明」のシートに入るので、結果の画面で直してから出力してください。</p>
-      <h3>テスト問題メーカーで作ったテスト</h3>
-      <p>テスト問題メーカーの画面上の「採点用JSON」で保存したファイルを、「正答と配点」の<strong>「テスト問題メーカーの正答を読み込む」</strong>で選ぶと、学年・テスト名（問題用紙の題名）・用紙に載せる文（問題用紙の注意書き）・設問数・選択肢の数・正答・配点・正答の文言（個人票に載る）・記述欄（見出し・配点・模範解答）が自動で入ります。テスト問題メーカーで観点を付けていれば、観点の名前と1問ごとの観点も入ります。このアプリで入れるのは、ふつうは名簿だけです。用紙に載せる文をこのアプリで書き直したときは、読み込み直してもその文を残します。手で入れ直す必要はありません。読み込んだあとも、画面で直せます（直した内容はテスト問題メーカーには戻りません）。</p>
+      <h3>テスト問題作成で作ったテスト</h3>
+      <p>テスト問題作成の画面上の「採点用JSON」で保存したファイルを、「正答と配点」の<strong>「テスト問題作成の正答を読み込む」</strong>で選ぶと、学年・テスト名（問題用紙の題名）・用紙に載せる文（問題用紙の注意書き）・設問数・選択肢の数・正答・配点・正答の文言（個人票に載る）・記述欄（見出し・配点・模範解答）が自動で入ります。テスト問題作成で観点を付けていれば、観点の名前と1問ごとの観点も入ります。このアプリで入れるのは、ふつうは名簿だけです。用紙に載せる文をこのアプリで書き直したときは、読み込み直してもその文を残します。手で入れ直す必要はありません。読み込んだあとも、画面で直せます（直した内容はテスト問題作成には戻りません）。</p>
       <p>問題を直して<strong>同じテストの正答を読み込み直した</strong>ときは、読み取り結果はそのまま残り、すぐ採点し直されます（出題ミスの修正など）。別のテストの正答を読み込むときは、読み取り結果を消してよいか確認が出ます。設問数・選択肢の数・記述欄が変わったときは、解答用紙を印刷し直してください。</p>
       <p>記述問題は、マークシートの解答用紙の下に記述欄として印刷されます。生徒には<strong>解答用紙の枠に</strong>書かせてください（読み取った画像を見て採点します）。</p>
       <h3>記述式の問題</h3>
@@ -547,7 +547,7 @@ details.panel summary{cursor:pointer}
       <p>はじめに<strong>「保存するフォルダ」</strong>を選びます（校務共有サーバーの、このアプリと同じフォルダなど）。入力した内容は、そのフォルダの中の<strong>データファイル</strong>（<code>マークシート採点_データ_2年_テスト名.json</code>）に自動で保存されます。<strong>1つの学年の1つのテストに1つのファイル</strong>です（名簿もテストごとに入ります）。右上の<strong>「保存・開く」</strong>から選びます。</p>
       <ul><li><strong>新規作成</strong>：新しいテストを始めるとき。学年とテスト名を入れると、すぐにファイルができ、そのあとは手で入れても自動で保存されます。テストを開いているときは、<strong>白紙から始める</strong>か、<strong>今のテストの正答・配点を使う</strong>か（同じテストを別のクラスで使うときなど）と、今の名簿を使うかを選べます（今のテストのファイルはそのまま残ります）。ファイルを作らずに正答を読み込んだときにも、この画面が出ます（今の内容が入ります）。</li>
       <li><strong>開く</strong>：前に保存したテストの続きをするとき。フォルダの中のテストの一覧から選びます。</li>
-      <li><strong>前の日の状態に戻す</strong>：まちがえて消した・直したとき。毎日、その日の最後の状態を、同じフォルダの<code>バックアップ</code>フォルダに自動で残しています（30日分）。戻したい日を選びます。</li></ul>
+      <li><strong>前の日の状態に戻す</strong>：まちがえて消した・直したとき。その日はじめて編集する前の状態を、同じフォルダの<code>バックアップ</code>フォルダに自動で残しています（アプリでは消しません。増えすぎたら手で整理してください）。戻したい日を選びます。</li></ul>
       <p>ファイルを作るまでは、<strong>どこにも保存されません</strong>（画面の上に知らせが出て、タブを閉じようとすると確認が出ます）。ブラウザの中にも残しません（共用のPCに生徒のデータが残らないように）。</p>
       <p><strong>読み取った用紙の画像</strong>は、保存するフォルダの中の<strong>「画像」フォルダ</strong>に、テストごとに自動で保存します（1枚およそ 200〜300KB。データファイルには入れません）。テストを開き直しても、用紙の確認・記述の採点・個人票の記述の答えに画像が使えます。用紙を削除したり、読み取り結果をすべて消したりすると、その画像も消えます。1.32 までに読み取った用紙の画像は残っていないので、必要なら元のPDFを読み取り直してください。</p>
       <p>データファイルを開いたまま<strong>別のテストの正答を読み込むと</strong>、前のテストのファイルには上書きせず、「新規作成してください」の画面が出ます（同じテストの正答を読み込み直したときは、そのまま同じファイルに保存します）。生徒の解答と名簿が入るので、インターネットやクラウドから見える場所のフォルダは選ばないでください。</p>
@@ -571,7 +571,7 @@ details.panel summary{cursor:pointer}
       <p>このアプリはこのHTMLファイル1つだけでできています。インストールは不要で、ファイルをコピーしてブラウザ（Chrome・Edge推奨）で開くだけで使えます。</p>
       <p>生徒の解答画像や成績は外部に送信されず、すべてこのPCの中で処理されます。</p>
       <p>修正が必要な場合は、ファイルをメモ帳などで開くと先頭に構成の説明があります。用紙の寸法は <code>LAYOUT</code> にまとまっていて、印刷と読み取りの両方がここを参照しています。寸法を変えたら必ず用紙を印刷し直してください。</p>
-      <p class="note">バージョン 1.39（結果の表を下へ・横へスクロールしても、列の見出し（問の番号）が上に、組・番号・氏名が左に残るようにした。「名簿を見る」の見出しも上に残る。用紙は1.8と同じ）<br>1.38（名簿があるとき、全データのExcel・CSVを名簿の順（組・番号）に出し、用紙のない生徒（欠席・未受験）も空欄の行で入れる（ほかの表に貼るときに番号がずれないように）。見出しに合計・観点ごとの満点を入れる。用紙は1.8と同じ）<br>1.37（結果の画面に「読み取った用紙がない生徒（欠席・未受験）」を組ごとに出す。用紙は1.8と同じ）<br>1.36（個人票の「あなたの解答」の見出しが欄からはみ出さないようにした。個人票・模範解答・成績一覧を印刷するとき、ブラウザが上下の余白に入れる日付・ファイルの場所などが出ないようにした。用紙は1.8と同じ）<br>1.35（「名簿を見る」で、読み取った用紙が「なし」の生徒の行を黄色にし、人数も出す。用紙は1.8と同じ）<br>1.34（名簿にない組・番号の用紙は、結果の表の氏名の欄を黄色にして「名簿にない番号」と出し、確認の欄にも印を付ける。用紙は1.8と同じ）<br>1.33（読み取った用紙の画像を、保存するフォルダの「画像」フォルダにも残し、テストを開き直しても画像を見られるようにした（用紙の確認・記述の採点・個人票の記述の答え）。成績一覧・分析に、順位順の名簿も付けた。用紙は1.8と同じ）<br>1.32（個人票：題名が長くても1行に収める（題名を上の行、組・番号・氏名を下の行に）。下の「見直しておきましょう」をやめた。得点分布は人数を出さない棒グラフに。用紙は1.8と同じ）<br>1.31（結果の表の行を押すと、用紙の画像と解答を画面いっぱいの窓で開く。「前の生徒」「次の生徒」のボタンと ← → キーで順に見られる。画像の横の解答に ○× と正答を出す。結果の表の横スクロールバーを表の上にも付けた。用紙は1.8と同じ）<br>1.30（読み取りの感度を動かすと、要確認の数・平均点と結果の一覧がすぐ変わる（「結果の確認と出力」にも感度を置いた）。テスト問題メーカーの正答のファイルをドロップで読み込める。出力のボタンを「よく使う出力」（個人票・成績一覧・分析・全データのExcel）と「そのほかの出力」に分けた。用紙は1.8と同じ）<br>1.29（アプリを開くと、前回のテストを自動で開かず、はじめに「開く」「新規作成」「閉じる」を選ぶ画面を出す（別のテストのつもりで前のテストに入力しないように）。用紙は1.8と同じ）<br>1.28（「新規作成」で学年とテスト名を入れて、すぐにファイルを作るようにした。テストを開いているときは、白紙から始めるか、今のテストの正答・配点や名簿を使うかを選べる（前は、開いているテストのファイルに戻ってしまい、手で入れた内容がそのファイルに保存されていた）。用紙は1.8と同じ）<br>1.27（はじめに「保存するフォルダ」を選び、その中にテストごとのファイルを作る形にした。「開く」はフォルダの中のテストの一覧から選ぶ。毎日のバックアップを同じフォルダの「バックアップ」に自動で残し（30日分）、「前の日の状態に戻す」で戻せる。手動のバックアップのボタンはやめた。用紙は1.8と同じ）<br>1.26（ブラウザの中に控えを残すのをやめ、データはファイルにだけ保存する。ボタンを「保存・開く」「開く」「新規作成」「バックアップから戻す」にした。ファイルに保存していない内容があるうちは、画面の上に知らせ、タブを閉じるときに確認を出す。用紙は1.8と同じ）<br>1.25（名簿を読み込むと、画面に名簿の一覧と、名簿にない組・番号の用紙を出す。名簿のCSVは1行目の見出し（学年・組・番号・氏名・フリガナ）から列を見分け、「学年・組・番号・氏名」の順や「1組」「5番」の書き方でも読める。データファイルを開く前に別のテストの正答を読み込んだときも、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.24（解答用紙の見出しに必ず「解答用紙」を入れる。印刷の画面で「PDFに保存」したときのファイル名を、印刷物の見出しと同じにする。読み取る位置は1.8と同じ）<br>1.23（別のテストの正答を読み込んだときは、前のテストのデータファイルに上書きせず、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.22（テスト問題メーカーの採点用JSONから、学年・題名（テスト名）・注意書き（解答用紙に載せる文）も入れるようにした。長いテスト名は解答用紙の見出しを自動で小さくする。用紙は1.8と同じ）<br>1.21（データをデータファイル（.json）に自動で保存するようにした。別のPC・ブラウザでも同じデータを使える。用紙は1.8と同じ）<br>1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題メーカーで付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題メーカーの「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
+      <p class="note">バージョン 1.40（自動のバックアップを校務アプリ共通の決まりにそろえた：その日はじめて編集する前の状態を1つ残す（名前は「マークシート採点_学年_テスト名_バックアップ_日付_時刻.json」）。アプリでは消さない。用紙は1.8と同じ）<br>1.39（結果の表を下へ・横へスクロールしても、列の見出し（問の番号）が上に、組・番号・氏名が左に残るようにした。「名簿を見る」の見出しも上に残る。用紙は1.8と同じ）<br>1.38（名簿があるとき、全データのExcel・CSVを名簿の順（組・番号）に出し、用紙のない生徒（欠席・未受験）も空欄の行で入れる（ほかの表に貼るときに番号がずれないように）。見出しに合計・観点ごとの満点を入れる。用紙は1.8と同じ）<br>1.37（結果の画面に「読み取った用紙がない生徒（欠席・未受験）」を組ごとに出す。用紙は1.8と同じ）<br>1.36（個人票の「あなたの解答」の見出しが欄からはみ出さないようにした。個人票・模範解答・成績一覧を印刷するとき、ブラウザが上下の余白に入れる日付・ファイルの場所などが出ないようにした。用紙は1.8と同じ）<br>1.35（「名簿を見る」で、読み取った用紙が「なし」の生徒の行を黄色にし、人数も出す。用紙は1.8と同じ）<br>1.34（名簿にない組・番号の用紙は、結果の表の氏名の欄を黄色にして「名簿にない番号」と出し、確認の欄にも印を付ける。用紙は1.8と同じ）<br>1.33（読み取った用紙の画像を、保存するフォルダの「画像」フォルダにも残し、テストを開き直しても画像を見られるようにした（用紙の確認・記述の採点・個人票の記述の答え）。成績一覧・分析に、順位順の名簿も付けた。用紙は1.8と同じ）<br>1.32（個人票：題名が長くても1行に収める（題名を上の行、組・番号・氏名を下の行に）。下の「見直しておきましょう」をやめた。得点分布は人数を出さない棒グラフに。用紙は1.8と同じ）<br>1.31（結果の表の行を押すと、用紙の画像と解答を画面いっぱいの窓で開く。「前の生徒」「次の生徒」のボタンと ← → キーで順に見られる。画像の横の解答に ○× と正答を出す。結果の表の横スクロールバーを表の上にも付けた。用紙は1.8と同じ）<br>1.30（読み取りの感度を動かすと、要確認の数・平均点と結果の一覧がすぐ変わる（「結果の確認と出力」にも感度を置いた）。テスト問題作成の正答のファイルをドロップで読み込める。出力のボタンを「よく使う出力」（個人票・成績一覧・分析・全データのExcel）と「そのほかの出力」に分けた。用紙は1.8と同じ）<br>1.29（アプリを開くと、前回のテストを自動で開かず、はじめに「開く」「新規作成」「閉じる」を選ぶ画面を出す（別のテストのつもりで前のテストに入力しないように）。用紙は1.8と同じ）<br>1.28（「新規作成」で学年とテスト名を入れて、すぐにファイルを作るようにした。テストを開いているときは、白紙から始めるか、今のテストの正答・配点や名簿を使うかを選べる（前は、開いているテストのファイルに戻ってしまい、手で入れた内容がそのファイルに保存されていた）。用紙は1.8と同じ）<br>1.27（はじめに「保存するフォルダ」を選び、その中にテストごとのファイルを作る形にした。「開く」はフォルダの中のテストの一覧から選ぶ。毎日のバックアップを同じフォルダの「バックアップ」に自動で残し（30日分）、「前の日の状態に戻す」で戻せる。手動のバックアップのボタンはやめた。用紙は1.8と同じ）<br>1.26（ブラウザの中に控えを残すのをやめ、データはファイルにだけ保存する。ボタンを「保存・開く」「開く」「新規作成」「バックアップから戻す」にした。ファイルに保存していない内容があるうちは、画面の上に知らせ、タブを閉じるときに確認を出す。用紙は1.8と同じ）<br>1.25（名簿を読み込むと、画面に名簿の一覧と、名簿にない組・番号の用紙を出す。名簿のCSVは1行目の見出し（学年・組・番号・氏名・フリガナ）から列を見分け、「学年・組・番号・氏名」の順や「1組」「5番」の書き方でも読める。データファイルを開く前に別のテストの正答を読み込んだときも、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.24（解答用紙の見出しに必ず「解答用紙」を入れる。印刷の画面で「PDFに保存」したときのファイル名を、印刷物の見出しと同じにする。読み取る位置は1.8と同じ）<br>1.23（別のテストの正答を読み込んだときは、前のテストのデータファイルに上書きせず、新しいデータファイルを作るよう案内する。用紙は1.8と同じ）<br>1.22（テスト問題作成の採点用JSONから、学年・題名（テスト名）・注意書き（解答用紙に載せる文）も入れるようにした。長いテスト名は解答用紙の見出しを自動で小さくする。用紙は1.8と同じ）<br>1.21（データをデータファイル（.json）に自動で保存するようにした。別のPC・ブラウザでも同じデータを使える。用紙は1.8と同じ）<br>1.20（「模範解答を印刷」を追加。読み取りや採点が終わっていなくても、正答・正答の文言・配点・記述の模範解答を1枚に印刷できる。用紙は1.8と同じ）<br>1.19（答えの分かれ方から、出題ミスの疑いがある問題を知らせる（結果の画面と成績一覧・分析）。用紙は1.8と同じ）<br>1.18（個人票：網かけをやめ、1人1枚に収まるよう自動で縮める。表の行の高さをそろえる。平均点の人数を省く。名簿の4列目にフリガナを入れると氏名の上に出る。用紙は1.8と同じ）<br>1.17（テスト問題作成で付けた観点（知識・技能／思考・判断・表現 など）も、採点用JSONから読み込めるように。用紙は1.8と同じ）<br>1.16（クラスごとのPDFをまとめて読み込んだとき、読み込んだファイルと枚数・組ごとの人数と平均点を表示。採点結果を、全員と組ごとのシートが入った1つのExcelファイルで出力できるように。用紙は1.8と同じ）<br>1.15（テスト問題作成の「採点用JSON」から、正答・配点・正答の文言・記述欄を読み込めるように。用紙は1.8と同じ）<br>1.14（個人票に載せる項目（平均点・順位・偏差値・得点分布など）を選べるように。評定用に、観点別の点数と合計点の一覧をExcelファイルで出力できるように。解答用紙の注意を「HB以上の鉛筆かシャープペンシルで濃く」に。マークの位置は1.8と同じ）<br>1.13（ファイル名を marksheet-saiten.html から index.html に変更。以前のファイル名で開いても自動でこちらに移ります。このPCに自動保存された内容と以前のバックアップは、そのまま引き継がれます。用紙は1.8と同じ）<br>1.12（PDF読み込み用の部品 pdf.js をファイル内に入れ、インターネットなしでもPDFを読めるようにした。用紙は1.8と同じ）<br>1.11（バックアップのファイル名を「マークシート採点_バックアップ_日付_テスト名.json」に変更。用紙は1.8と同じ）<br>1.10（個人票を白黒印刷でも分かるように：正誤を○×の列と網かけで表示、観点の説明を追加。成績一覧の正答は太枠に。用紙は1.8と同じ）<br>1.9（はじめての方向けの画面ガイドと、サンプルの用紙で試せる練習モードを追加。用紙は1.8と同じ）<br>1.8（解答用紙の各問題に配点と観点（例：2点 知）を印刷。「解答用紙の印刷」で印刷しないこともできる。個人票に観点の列を追加。マークの位置は変えていない）<br>1.7（解答用紙に学年・組・番号を手書きする枠を追加。学年はアプリで選ぶと印字される。マークの位置は1.6と同じなので、前の用紙もそのまま読める）<br>1.6（名簿（氏名）の読み込み、観点別の集計、別解・全員正解、白紙ページの自動スキップ、手修正の取り消しを追加。記述欄つきの用紙で問題番号が重なって印刷される不具合を修正。<strong>記述欄つきの用紙を1.3〜1.5で印刷した場合は印刷し直すこと</strong>（読み取りはどちらでもできる））<br>1.5（生徒に配る個人票と、成績一覧・分析の印刷を追加。模範解答の文言を入力できるように。用紙は1.3と同じ）<br>1.4（読み取りの自己診断を追加。用紙は1.3と同じなので印刷し直す必要はない）<br>1.3（記述欄を追加。記述欄0個なら1.2の用紙もそのまま読める。1.1以前で印刷した用紙は読み取れない）</p>
     </div>
   </section>
 </main>
@@ -834,7 +834,7 @@ function normalizeSettings(){
   s.showInfo = s.showInfo !== false;                                      // v1.8 用紙に配点・観点を印刷する（初期値は印刷する）
   if (!s.slipOpts || typeof s.slipOpts !== 'object') s.slipOpts = {};     // v1.14 個人票に載せる項目
   SLIP_OPTS.forEach(o => { if (typeof s.slipOpts[o.key] !== 'boolean') s.slipOpts[o.key] = o.on; });
-  if (!s.source || typeof s.source !== 'object') s.source = null;         // v1.15 テスト問題メーカーから読み込んだ正答の出どころ（exam.id など）。手入力なら null
+  if (!s.source || typeof s.source !== 'object') s.source = null;         // v1.15 テスト問題作成から読み込んだ正答の出どころ（exam.id など）。手入力なら null
   if (!Array.isArray(s.sections)) s.sections = [];                        // v1.15 大問ごとの範囲と配点（今は保存だけ）
   if (!Array.isArray(state.roster)) state.roster = [];
 }
@@ -1149,39 +1149,39 @@ $('#btnBulk').onclick = () => {
   renderSettings(); autosave(); toast(`全問を${v}点にしました`);
 };
 
-/* ---- テスト問題メーカーの「採点用JSON」の読み込み（v1.15） ----
-   テスト問題メーカー（別アプリ testmaker）が書き出す正答のファイルから、正答・配点・正答の文言・記述欄を入れる。
-   ファイルの形（2つのアプリの約束）は HANDOFF.md の「テスト問題メーカーとの連携」に書いてある。
+/* ---- テスト問題作成の「採点用JSON」の読み込み（v1.15） ----
+   テスト問題作成（別アプリ testmaker）が書き出す正答のファイルから、正答・配点・正答の文言・記述欄を入れる。
+   ファイルの形（2つのアプリの約束）は HANDOFF.md の「テスト問題作成との連携」に書いてある。
    ・問題番号は全大問を通した連番 1,2,3…。記述は連番に入れず「記1, 記2…」。
    ・正答の index は 1 始まり（ア=1）。このアプリの key は 0 始まり（ア=0）なので 1 を引く。
    ・exam.id は問題と採点結果を結びつけるキー。同じ id を読み込み直したときは読み取り結果を残して採点し直す。
-   手入力の方法はそのまま残してあり、読み込んだあとも画面で直せる（直してもテスト問題メーカー側には戻らない）。 */
+   手入力の方法はそのまま残してあり、読み込んだあとも画面で直せる（直してもテスト問題作成側には戻らない）。 */
 // 採点用JSONの形：1 = 正答・配点・記述欄、2 = それに観点(kanten:名前の並び、items[].kanten・written[].kanten:番号。-1 はなし)を足したもの(v1.17)
 const KEY_APP = 'testmaker-answerkey', KEY_SCHEMA = 2;
 /** 採点用JSONを確かめて、取り込む内容を返す。読めないときは { error: '理由と対処' } */
 function parseAnswerKey(d){
-  if (!d || typeof d !== 'object') return { error: 'ファイルの中身を読み取れませんでした。テスト問題メーカーの「採点用JSON」ボタンで保存し直してください。' };
-  if (d.app === 'marksheet-grader' || d.app === 'marksheet-saiten') return { error: 'これはこのアプリのデータファイル（またはバックアップ）です。テスト問題メーカーの「採点用JSON」を選んでください。このファイルの続きをするときは、右上の「保存・開く」→「開く」を使います。' };
-  if (d.app !== KEY_APP) return { error: 'テスト問題メーカーの「採点用JSON」ではありません。テスト問題メーカーの画面上の「採点用JSON」ボタンで保存したファイルを選んでください。' };
+  if (!d || typeof d !== 'object') return { error: 'ファイルの中身を読み取れませんでした。テスト問題作成の「採点用JSON」ボタンで保存し直してください。' };
+  if (d.app === 'marksheet-grader' || d.app === 'marksheet-saiten') return { error: 'これはこのアプリのデータファイル（またはバックアップ）です。テスト問題作成の「採点用JSON」を選んでください。このファイルの続きをするときは、右上の「保存・開く」→「開く」を使います。' };
+  if (d.app !== KEY_APP) return { error: 'テスト問題作成の「採点用JSON」ではありません。テスト問題作成の画面上の「採点用JSON」ボタンで保存したファイルを選んでください。' };
   if (+d.schema > KEY_SCHEMA) return { error: `新しい形式（${d.schema}）の採点用JSONです。このアプリは形式${KEY_SCHEMA}までしか読めません。採点アプリを新しい版にしてください。` };
-  if (!(+d.schema >= 1 && +d.schema <= KEY_SCHEMA)) return { error: '採点用JSONの形式が分かりません。テスト問題メーカーで保存し直してください。' };
+  if (!(+d.schema >= 1 && +d.schema <= KEY_SCHEMA)) return { error: '採点用JSONの形式が分かりません。テスト問題作成で保存し直してください。' };
   const items = Array.isArray(d.items) ? [...d.items].sort((a, b) => a.no - b.no) : [];
   const written = Array.isArray(d.written) ? d.written : [];
   const labels = Array.isArray(d.labels) ? d.labels.map(String) : [];
-  if (!items.length) return { error: 'マークシートで答える問題が1問もありません。テスト問題メーカーで問題を確かめてください。' };
+  if (!items.length) return { error: 'マークシートで答える問題が1問もありません。テスト問題作成で問題を確かめてください。' };
   const bad = items.findIndex((it, i) => it.no !== i + 1);
-  if (bad >= 0) return { error: `問題番号が1から順に並んでいません（${bad + 1}番目が「${items[bad].no}」）。テスト問題メーカーで保存し直してください。` };
-  // 選択肢の数：テスト問題メーカーの「マークシートの最大選択肢数」（labels の数）にそろえる。
+  if (bad >= 0) return { error: `問題番号が1から順に並んでいません（${bad + 1}番目が「${items[bad].no}」）。テスト問題作成で保存し直してください。` };
+  // 選択肢の数：テスト問題作成の「マークシートの最大選択肢数」（labels の数）にそろえる。
   // 正答に使っていない記号も生徒はマークできるので、正答の最大位置ではなく labels の数を使う。
   const maxIdx = Math.max(...items.map(it => +it.index || 0));
-  if (labels.length > LAYOUT.maxC) return { error: `選択肢が${labels.length}個（${labels[0]}〜${labels[labels.length-1]}）あります。解答用紙は${LAYOUT.maxC}個（ア〜コ）までです。テスト問題メーカーの「マークシートの最大選択肢数」を${LAYOUT.maxC}以下にして保存し直してください。` };
+  if (labels.length > LAYOUT.maxC) return { error: `選択肢が${labels.length}個（${labels[0]}〜${labels[labels.length-1]}）あります。解答用紙は${LAYOUT.maxC}個（ア〜コ）までです。テスト問題作成の「マークシートの最大選択肢数」を${LAYOUT.maxC}以下にして保存し直してください。` };
   const ng = items.find(it => !Number.isInteger(+it.index) || +it.index < 1 || +it.index > LAYOUT.maxC);
-  if (ng) return { error: `問${ng.no}の正答（${ng.label ?? '?'}）が解答用紙の選択肢（ア〜コ）に入りません。テスト問題メーカーで正答を確かめてください。` };
+  if (ng) return { error: `問${ng.no}の正答（${ng.label ?? '?'}）が解答用紙の選択肢（ア〜コ）に入りません。テスト問題作成で正答を確かめてください。` };
   const nC = Math.max(2, labels.length, maxIdx);
   const warnings = [];
   if (labels.slice(0, nC).some((l, i) => l !== LAYOUT.labels[i]))
     warnings.push(`問題用紙の記号は「${labels.slice(0, 3).join('・')}…」ですが、解答用紙は「ア・イ・ウ…」で印刷されます（1番目＝ア、2番目＝イ…の順で対応します）。生徒にそのことを伝えてください。`);
-  // 記述欄：テスト問題メーカーの行数（1行約9mm）から、欄の高さ（低い2・ふつう3・高い5）を決める。入らなければ低くする
+  // 記述欄：テスト問題作成の行数（1行約9mm）から、欄の高さ（低い2・ふつう3・高い5）を決める。入らなければ低くする
   if (written.length > 6) return { error: `記述問題が${written.length}問あります。解答用紙に入る記述欄は6個までです。` };
   const maxLines = Math.max(0, ...written.map(w => +w.lines || 0));
   const wantSize = maxLines <= 2 ? 2 : maxLines <= 4 ? 3 : 5;
@@ -1195,11 +1195,11 @@ function parseAnswerKey(d){
   const sum = items.reduce((a, it) => a + pts(it), 0) + written.reduce((a, w) => a + pts(w), 0);
   if (Number.isFinite(+d.total) && +d.total !== sum) warnings.push(`配点の合計（${sum}点）が、ファイルに書かれた合計点（${d.total}点）と合いません。配点を確かめてください。`);
   const ex = d.exam || {};
-  // 学年・題名・注意書き（v1.22。テスト問題メーカーが 2026-11-04 から書き出す。無ければ今の設定を残す）
+  // 学年・題名・注意書き（v1.22。テスト問題作成が 2026-11-04 から書き出す。無ければ今の設定を残す）
   const toHalf = t => String(t ?? '').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   const gm = toHalf(ex.grade).match(/[1-3]/), grade = gm ? +gm[0] : '';
   // テスト名は、問題用紙の題名を優先する（生徒に配る個人票・解答用紙に載るため）。
-  // 題名がひな形のまま（「令和　年度　　学年…」のように空白のあとに年度・学年・学期が続く）なら、テスト問題メーカーでの名前を使う
+  // 題名がひな形のまま（「令和　年度　　学年…」のように空白のあとに年度・学年・学期が続く）なら、テスト問題作成での名前を使う
   const title = String(ex.title || '').trim(), titleOk = title && !/[\s　](年度|学年|学期)/.test(title);
   const notice = typeof ex.notice === 'string'
     ? ex.notice.split(/\r?\n/).map(t => t.trim()).filter(Boolean).map(t => '※' + t.replace(/^※\s*/, '')).join('\n') : null;
@@ -1255,19 +1255,19 @@ function applyAnswerKey(p){
   }
   s.nQ = P.nQ; s.nC = P.nC; s.writtenSize = P.writtenSize;
   s.written = P.written.map((w, j) => Object.assign({}, w, { kanten: s.written[j] ? s.written[j].kanten : -1 }));
-  // テスト問題メーカーで観点を付けていれば、観点の名前と1問ごとの観点も入れる(手元の観点の設定より、問題用紙と同じものを優先する)
+  // テスト問題作成で観点を付けていれば、観点の名前と1問ごとの観点も入れる(手元の観点の設定より、問題用紙と同じものを優先する)
   if (P.kanten) {
     s.kanten = P.kanten.names.slice();
     for (let q = 0; q < LAYOUT.maxQ; q++) s.qKanten[q] = q < P.nQ ? P.kanten.q[q] : -1;
     s.written.forEach((w, j) => { w.kanten = P.kanten.w[j] ?? -1; });
-    notes.push('観点も、テスト問題メーカーで付けたものを入れました（「模範解答・観点・採点の特例」で確かめられます）。');
+    notes.push('観点も、テスト問題作成で付けたものを入れました（「模範解答・観点・採点の特例」で確かめられます）。');
   }
   if (!(sameExam && s.testName.trim())) s.testName = P.testName;   // 同じテストで先生がテスト名を直していれば残す
-  if (P.grade !== '') s.grade = P.grade;                             // v1.22 学年（テスト問題メーカーで空なら今のまま）
+  if (P.grade !== '') s.grade = P.grade;                             // v1.22 学年（テスト問題作成で空なら今のまま）
   // v1.22 注意書き → 用紙に載せる文。空のとき・前に読み込んだまま直していないときだけ入れる（先生が書いた文は消さない）
   const prevNote = s.source && typeof s.source.note === 'string' ? s.source.note : null;
   if (P.notice !== null && (!s.note.trim() || s.note === prevNote)) s.note = P.notice;
-  else if (P.notice && s.note !== P.notice) notes.push('「用紙に載せる文」は、ここで書いた文をそのまま残しました（テスト問題メーカーの注意書きは入れていません）。');
+  else if (P.notice && s.note !== P.notice) notes.push('「用紙に載せる文」は、ここで書いた文をそのまま残しました（テスト問題作成の注意書きは入れていません）。');
   s.source = Object.assign({}, P.source, { note: P.notice !== null && s.note === P.notice ? P.notice : (prevNote ?? null) }); s.sections = P.sections;
   // v1.23 別のテストを読み込んだら、前のテストのデータファイルに上書きしない（1つのテストに1つのデータファイル）。
   // 自動保存より先にデータファイルから切り離し、読み込んだあとで新しいファイルを作るか聞く（dfAskNewTest）
@@ -1280,13 +1280,13 @@ function applyAnswerKey(p){
 function updateKeySource(){
   const src = state.settings.source;
   $('#keySource').textContent = src
-    ? `テスト問題メーカーの「${src.name || src.title}」の正答を読み込んでいます（${new Date(src.importedAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}）。ここで直した内容は、テスト問題メーカーには戻りません。`
-    : 'テスト問題メーカーで作ったテストなら、「採点用JSON」のファイルを読み込むと、学年・テスト名・注意書き・正答・配点・観点・記述欄が自動で入ります。下の欄に手で入力してもかまいません。';
+    ? `テスト問題作成の「${src.name || src.title}」の正答を読み込んでいます（${new Date(src.importedAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}）。ここで直した内容は、テスト問題作成には戻りません。`
+    : 'テスト問題作成で作ったテストなら、「採点用JSON」のファイルを読み込むと、学年・テスト名・注意書き・正答・配点・観点・記述欄が自動で入ります。下の欄に手で入力してもかまいません。';
 }
-/** テスト問題メーカーの採点用JSONを読み込む（ボタン・ドロップから。v1.30 でドロップを足した） */
+/** テスト問題作成の採点用JSONを読み込む（ボタン・ドロップから。v1.30 でドロップを足した） */
 async function loadKeyFile(f){
   if (practiceSnapshot){ toast('練習中は読み込めません。先に「練習を終えて元に戻す」を押してください'); return; }
-  let d; try { d = JSON.parse(await f.text()); } catch (err) { alert('ファイルを読み取れませんでした。テスト問題メーカーの「採点用JSON」ボタンで保存したファイル（.json）を選んでください。'); return; }
+  let d; try { d = JSON.parse(await f.text()); } catch (err) { alert('ファイルを読み取れませんでした。テスト問題作成の「採点用JSON」ボタンで保存したファイル（.json）を選んでください。'); return; }
   const p = parseAnswerKey(d);
   if (p.error){ alert('読み込めませんでした。\n\n' + p.error); return; }
   const notes = applyAnswerKey(p);
@@ -1305,7 +1305,7 @@ $('#fileKey').onchange = e => { const f = e.target.files[0]; e.target.value = ''
   kd.addEventListener('drop', e => {
     e.stopPropagation();
     const f = [...e.dataTransfer.files].find(x => /\.json$/i.test(x.name));
-    if (f) loadKeyFile(f); else alert('テスト問題メーカーの「採点用JSON」（.json のファイル）をドロップしてください。');
+    if (f) loadKeyFile(f); else alert('テスト問題作成の「採点用JSON」（.json のファイル）をドロップしてください。');
   });
 }
 
@@ -1449,7 +1449,7 @@ const drop = $('#drop');
 ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e => { e.stopPropagation(); routeDrop([...e.dataTransfer.files]); });
-/** 落としたファイルの種類で振り分ける（v1.30）。.json は正答（テスト問題メーカー）、PDF・画像は読み取り */
+/** 落としたファイルの種類で振り分ける（v1.30）。.json は正答（テスト問題作成）、PDF・画像は読み取り */
 function routeDrop(files){
   const key = files.find(f => /\.json$/i.test(f.name)), scans = files.filter(f => !/\.json$/i.test(f.name));
   if (key){ showStep(1); loadKeyFile(key); return; }
@@ -2666,7 +2666,7 @@ $('#btnPractice2').onclick = () => { if (startPractice()) startTour(1); };
 const TOUR = [
   { step: 1, title: 'ようこそ', text: 'マークシートの採点アプリです。複合機でまとめてスキャンしたPDFを読み込むと、マーク式を自動で採点します。記述式は画像を見ながら点数を入れます。<br>これから画面を順番に案内します（約2分）。' },
   { step: 1, sel: 'nav.steps', title: '4つの手順', text: '上から順に「1 正答と配点 → 2 解答用紙の印刷 → 3 読み取り → 4 結果の確認と出力」と進めます。いつでもこのタブで行き来できます。' },
-  { step: 1, sel: '#keyDrop', title: 'テスト問題メーカーから読み込む', text: 'テスト問題メーカーでテストを作った場合は、「採点用JSON」のファイルをこの枠にドラッグする（またはボタンで選ぶ）と、学年・テスト名・注意書き・正答・配点・観点などが自動で入り、このアプリで入れることはほとんどありません。使わない場合は、下の欄に手で入力します。' },
+  { step: 1, sel: '#keyDrop', title: 'テスト問題作成から読み込む', text: 'テスト問題作成でテストを作った場合は、「採点用JSON」のファイルをこの枠にドラッグする（またはボタンで選ぶ）と、学年・テスト名・注意書き・正答・配点・観点などが自動で入り、このアプリで入れることはほとんどありません。使わない場合は、下の欄に手で入力します。' },
   { step: 1, sel: '#testName', up: '.panel', title: 'テストの基本', text: '学年・テスト名・設問数・選択肢の数を決めます。学年を選ぶと解答用紙に印字されます。下の枠には、用紙に載せる注意事項を書けます。' },
   { step: 1, sel: '#keyGrid', up: '.panel', title: '正答と配点', text: '問題ごとに正しい選択肢のボタンを押し、右の欄に配点を入れます。配点は上の「全問に適用」でまとめて変えられます。' },
   { step: 1, sel: '#nW', up: '.panel', title: '記述式の問題（必要なときだけ）', text: '記述式がある場合は欄の数と高さを決めます。解答用紙の下のほうに記述欄が印刷されます。' },
@@ -2683,7 +2683,7 @@ const TOUR = [
   { step: 4, sel: '#outMain', title: 'よく使う出力', text: '<strong>個人票</strong>（1人1枚、生徒に配る）、<strong>成績一覧・分析</strong>（得点分布・設問ごとの正答率など）、<strong>全データのExcel</strong>（全員と組ごとのシートが1つのファイルに入る）です。印刷画面で「PDFに保存」も選べます。<strong>観点別の一覧</strong>（評定の表に貼り付ける用のExcel）・CSV・<strong>模範解答</strong>は、下の「そのほかの出力」を開くと出ます。' },
   { step: 4, sel: '#slipOpts', title: '個人票に載せる項目', text: '平均点・組の平均点・順位・偏差値・得点分布などを、個人票に載せるかどうかここで選べます。はじめは平均点だけが載ります。' },
   { step: 4, sel: '#rosterState', up: '.row', title: '名簿（氏名）', text: '組・番号・氏名の列のCSVを読み込むと、個人票や一覧に氏名が入ります。4列目にフリガナを入れると、個人票に出ます。一度読み込めば次のテストでも使えます。読み込むと、下の「名簿を見る」で名簿の一覧と、名簿にない組・番号の用紙を確かめられます。' },
-  { step: 4, sel: '#btnDataFile', title: '保存・開く', text: '正答・読み取り結果・名簿は、保存するフォルダの中の、テストごとのファイル（.json）に自動で保存されます。新しいテストは「新規作成」（学年とテスト名を入れると、すぐにファイルができます）、前のテストの続きは「開く」です。毎日のバックアップも同じフォルダに自動で残り、「前の日の状態に戻す」で戻せます。' },
+  { step: 4, sel: '#btnDataFile', title: '保存・開く', text: '正答・読み取り結果・名簿は、保存するフォルダの中の、テストごとのファイル（.json）に自動で保存されます。新しいテストは「新規作成」（学年とテスト名を入れると、すぐにファイルができます）、前のテストの続きは「開く」です。その日はじめて編集する前の状態が、バックアップとして同じフォルダに自動で残り、「前の日の状態に戻す」で戻せます。' },
   { step: 'help', title: '案内はここまでです', text: () => practiceSnapshot
       ? 'このあと「3 読み取り」の青いボタンでサンプルを読み取り、「4 結果の確認と出力」で黄色の欄を直したり、記述を採点したり、個人票を印刷プレビューしたりしてみてください。<br>終わったら、上の青い帯の<strong>「練習を終えて元に戻す」</strong>を押します。'
       : 'くわしい説明はこの「使い方・引き継ぎ」ページにあります。<br>印刷もスキャンもせずに試せる<strong>「サンプルで練習」</strong>もおすすめです。' },
@@ -2771,13 +2771,16 @@ $('#btnTour2').onclick = () => startTour(0);
 
 /* ---- データファイル（.json）への自動保存（v1.21〜。v1.26 でブラウザの中の控えをやめ、v1.27 で「保存するフォルダ」を選ぶ形にした） ----
    なぜ：ブラウザの中（localStorage）だけの保存は、PC・ブラウザ（Chrome と Edge）・アカウントごとに別々で、
-   「開く人・開くPCによって中身が違う」「履歴削除で消える」混乱のもとになるため。テスト問題メーカーと同じ作りにした。
+   「開く人・開くPCによって中身が違う」「履歴削除で消える」混乱のもとになるため。テスト問題作成と同じ作りにした。
    - 先生が最初に「保存するフォルダ」を選ぶ（校務共有サーバーのフォルダなど）。その中に「1つの学年の1つのテストに1つのデータファイル」
      （マークシート採点_データ_2年_テスト名.json）を作り、変更のたびに上書きする（Chrome/Edge の File System Access API）。
      「開く」では、ファイルを選ぶ画面ではなく、フォルダの中のテストの一覧を出す。名簿はテストごとに変わることがあるので、ファイルを分ける。
    - フォルダにしたのは、日付つきのバックアップを自動で書くため（ブラウザは、選ばれたファイルの横に別のファイルを作れない）。
-     バックアップは「フォルダ/バックアップ/マークシート採点_データ_…_2026-11-06.json」。1日1つで、その日の最後の状態
-     （保存のたびに、BACKUP_EVERY_MIN 分おきに書き直す）。BACKUP_KEEP_DAYS 日より古いものは消す。
+     v1.40 から校務アプリ共通の決まり（apps/CLAUDE.md「データファイルの置き方と自動バックアップ」）にそろえた：
+     名前は「フォルダ/バックアップ/マークシート採点_2年_テスト名_バックアップ_2026-11-21_0830.json」（backupName）。
+     取るのは、そのテストをその日はじめて書き換える直前（dfWrite の中。ファイルにある、編集を始める前の状態）で、
+     その日の分がもう「バックアップ」フォルダにあれば取らない（何台のPCで編集しても1日1つ）。開く前・上書き前・戻す前にも、しるし付きで取る。
+     アプリでは消さない（件数は「前の日の状態に戻す」に出す。整理は手で）。1.39 までの名前（…_2026-11-06.json）も一覧に出して戻せる。
      「前の日の状態に戻す」で選んで戻せる。手動のバックアップのボタンは、紛らわしいので v1.27 でやめた。
    - 中身はどれも同じ形（stateData。kind だけ 'data' / 'backup'）。
    - 選んだフォルダと、最後に開いたファイルの名前は IndexedDB に覚える。アプリを開いたときは、いつも「開く・新規作成・閉じる」の画面を出し
@@ -2788,16 +2791,14 @@ $('#btnTour2').onclick = () => startTour(0);
    - 生徒の解答・名簿が入るので、フォルダは校務共有サーバーか先生のPCにする（README に明記）。 */
 const DATA_FILE_PREFIX = 'マークシート採点_データ';
 const BACKUP_DIR = 'バックアップ';     // 保存するフォルダの中に作る、バックアップのフォルダの名前
-const BACKUP_KEEP_DAYS = 30;          // バックアップを残す日数（学校ごとに変えてよい）
-const BACKUP_EVERY_MIN = 10;          // その日のバックアップを書き直す間隔（分）
 const IMAGE_DIR = '画像';             // 保存するフォルダの中に作る、読み取った用紙の画像のフォルダの名前（v1.33）
 const FILE_TYPES = [{ description: 'マークシート採点のデータ', accept: { 'application/json': ['.json'] } }];
 const UNSAVED_KEY = 'marksheet-grader-unsaved';   // 1.25 までの印（控えにだけある変更）。前の版の控えを移すときだけ読む
 // DF.state：unsupported（このブラウザは非対応）| none（ファイルを開いていない）| ok | error（保存失敗）| conflict（別の所で変更された）
 // DF.dir：保存するフォルダ。DF.fileDir：今のファイルがあるフォルダ（バックアップを書く所）。DF.lastName：前回開いたファイルの名前。
 // DF.oldHandle：1.26 で使っていたファイル（フォルダを選ぶ画面を、その場所から始めるため）。DF.dirty：ファイルに書いていない変更がある。
-// DF.asked：ファイルを開いていないとき、「ファイルに保存してください」をこの画面でもう出したか（何度も出さない）。DF.bkDay・bkAt：最後にバックアップを書いた日・時刻
-const DF = { dir: null, fileDir: null, handle: null, lastName: '', oldHandle: null, state: 'none', lastMod: 0, writing: false, again: false, err: '', savedAt: 0, dirty: false, asked: false, bkDay: '', bkAt: 0 };
+// DF.asked：ファイルを開いていないとき、「ファイルに保存してください」をこの画面でもう出したか（何度も出さない）。DF.bkDay：その日のバックアップを確かめた日（v1.40）
+const DF = { dir: null, fileDir: null, handle: null, lastName: '', oldHandle: null, state: 'none', lastMod: 0, writing: false, again: false, err: '', savedAt: 0, dirty: false, asked: false, bkDay: '' };
 const fsSupported = () => 'showDirectoryPicker' in window && 'indexedDB' in window;
 function idb(mode, fn){
   return new Promise((res, rej) => {
@@ -2846,6 +2847,7 @@ async function dfWrite(){
       json = JSON.stringify(stateData('data'));   // 先に中身を取る（書いている間に練習を始めても、練習の中身を書かないように）
       const f = await DF.handle.getFile();
       if (DF.lastMod && f.lastModified !== DF.lastMod){ DF.state = 'conflict'; break; }
+      await dfDailyBackup(f);   // v1.40 その日はじめて書き換える前に、今のファイルの中身を残す
       const w = await DF.handle.createWritable();
       await w.write(json); await w.close();
       DF.lastMod = (await DF.handle.getFile()).lastModified; DF.savedAt = Date.now();
@@ -2853,7 +2855,7 @@ async function dfWrite(){
     if (DF.state === 'ok' && !practiceSnapshot){ DF.dirty = false; if (oldCopyPending){ clearOldCopy(); oldCopyPending = false; } }
   } catch (e) { console.warn(e); DF.state = 'error'; DF.err = e.message || String(e); }
   DF.writing = false; renderFileBar(); showSaveState();
-  if (DF.state === 'ok' && json){ dfBackup(json); dfSyncImages(); }
+  if (DF.state === 'ok' && json) dfSyncImages();
 }
 
 /* ---- 読み取った用紙の画像（v1.33） ----
@@ -2912,43 +2914,52 @@ async function dfLoadImages(){
 }
 
 
-/* ---- 自動のバックアップ（v1.27） ---- */
+/* ---- 自動のバックアップ（v1.27。v1.40 で校務アプリ共通の決まりにそろえた） ----
+   置き場所：データのフォルダの中の「バックアップ」フォルダ。
+   名前：マークシート採点_2年_テスト名_バックアップ_2026-11-21_0830(_しるし).json（データファイルの名前から「データ_」を除いたもの＋日付・時刻）。
+   取るとき：そのテストをその日はじめて書き換える直前（dfDailyBackup）。開く前・上書き前・戻す前は、しるし付きで取る。
+   アプリでは消さない（共通の決まり。整理は先生が手で行う） */
 const stemOf = name => name.replace(/\.json$/i, '');
 async function backupDir(dir){ return (dir || DF.fileDir).getDirectoryHandle(BACKUP_DIR, { create: true }); }
-/** 「フォルダ/バックアップ」に、名前_日付(_しるし).json で書く */
+/** バックアップの名前の頭（データファイルの名前から「_データ」を除く）。例：マークシート採点_2年_テスト名_バックアップ_ */
+const backupHead = stem => stem.replace(DATA_FILE_PREFIX + '_', DATA_FILE_PREFIX.replace(/_データ$/, '') + '_') + '_バックアップ_';
+function backupName(stem, mark){
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${backupHead(stem)}${todayStr()}_${p(d.getHours())}${p(d.getMinutes())}${mark ? '_' + mark : ''}.json`;
+}
+/** 「フォルダ/バックアップ」に書く（同じ分に2回取ったら上書き） */
 async function writeBackupFile(stem, json, mark, dir){
   const bd = await backupDir(dir);
-  const w = await (await bd.getFileHandle(`${stem}_${todayStr()}${mark ? '_' + mark : ''}.json`, { create: true })).createWritable();
+  const w = await (await bd.getFileHandle(backupName(stem, mark), { create: true })).createWritable();
   await w.write(json); await w.close();
   return bd;
 }
-/** その日のバックアップを書く（BACKUP_EVERY_MIN 分おき。日が変わったらすぐ）。失敗しても作業は止めない */
-async function dfBackup(json){
-  if (!DF.fileDir || !DF.handle) return;
-  const day = todayStr(), now = Date.now();
-  if (DF.bkDay === day && now - DF.bkAt < BACKUP_EVERY_MIN * 60000) return;
-  DF.bkDay = day; DF.bkAt = now;
-  try { cleanBackups(await writeBackupFile(stemOf(DF.handle.name), json)); }
-  catch (e) { console.warn('バックアップを書けませんでした', e); }
+/** その日はじめて書き換える前に、ファイルの今の中身（編集を始める前の状態）を残す（v1.40）。
+    その日のしるし無しのバックアップが「バックアップ」フォルダにもうあれば取らない（別のPC・別の画面で取った分も数える）。
+    空のファイル（作ったばかり）は取らない。失敗しても保存は止めない */
+async function dfDailyBackup(f){
+  const day = todayStr();
+  if (DF.bkDay === day || !DF.fileDir || !DF.handle) return;
+  try {
+    const text = await f.text();
+    if (text.trim()){
+      const bd = await backupDir(), head = backupHead(stemOf(DF.handle.name)) + day + '_';
+      let have = false;
+      for await (const [name, h] of bd.entries()) if (h.kind === 'file' && name.startsWith(head) && /^\d{4}\.json$/.test(name.slice(head.length))){ have = true; break; }
+      if (!have){ const w = await (await bd.getFileHandle(backupName(stemOf(DF.handle.name)), { create: true })).createWritable(); await w.write(text); await w.close(); }
+    }
+    DF.bkDay = day;
+  } catch (e) { console.warn('バックアップを書けませんでした', e); }
 }
-/** BACKUP_KEEP_DAYS 日より古いバックアップを消す（このアプリのファイルだけ） */
-async function cleanBackups(bd){
-  const lim = new Date(); lim.setDate(lim.getDate() - BACKUP_KEEP_DAYS);
-  const p = n => String(n).padStart(2, '0'), cut = `${lim.getFullYear()}-${p(lim.getMonth()+1)}-${p(lim.getDate())}`;
-  const old = [];
-  for await (const [name, h] of bd.entries()){
-    const m = name.match(/_(\d{4}-\d{2}-\d{2})(_[^_]+)?\.json$/);
-    if (h.kind === 'file' && name.startsWith(DATA_FILE_PREFIX) && m && m[1] < cut) old.push(name);
-  }
-  for (const name of old){ try { await bd.removeEntry(name); } catch (e) { console.warn(e); } }
-}
-/** 今のテストのバックアップの一覧（新しい順） */
+/** 今のテストのバックアップの一覧（新しい順）。1.39 までの名前（データファイルの名前_日付(_しるし).json）も入れる */
 async function listBackups(){
-  const bd = await backupDir(), stem = stemOf(DF.handle.name), out = [];
+  const bd = await backupDir(), stem = stemOf(DF.handle.name), head = backupHead(stem), out = [];
   for await (const [name, h] of bd.entries()){
-    if (h.kind !== 'file' || !name.startsWith(stem + '_')) continue;
-    const m = name.slice(stem.length).match(/^_(\d{4}-\d{2}-\d{2})(?:_([^_]+))?\.json$/);
-    if (m) out.push({ name, h, day: m[1], mark: m[2] || '', mod: (await h.getFile()).lastModified });
+    if (h.kind !== 'file') continue;
+    let m = null;
+    if (name.startsWith(head)) m = name.slice(head.length).match(/^(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})(?:_([^_]+))?\.json$/);
+    else if (name.startsWith(stem + '_')){ const o = name.slice(stem.length).match(/^_(\d{4}-\d{2}-\d{2})(?:_([^_]+))?\.json$/); if (o) m = [o[0], o[1], '', '', o[2]]; }
+    if (m) out.push({ name, h, day: m[1], time: m[2] ? `${+m[2]}:${m[3]}` : '', mark: m[4] || '', mod: (await h.getFile()).lastModified });
   }
   return out.sort((a, b) => b.day.localeCompare(a.day) || b.mod - a.mod);   // 日付の新しい順。同じ日は書いた時刻の新しい順
 }
@@ -2971,7 +2982,7 @@ async function dfOpenHandle(hd, dir){
     catch (e) { if (!confirm(`今の内容を残せませんでした（${e.message || e}）。\nこのまま開きますか？（今の内容は消えます）`)) return false; }
   }
   DF.handle = hd; DF.fileDir = dir || DF.dir; DF.lastName = hd.name; DF.lastMod = f.lastModified;
-  DF.state = 'ok'; DF.err = ''; DF.savedAt = f.lastModified; DF.bkDay = ''; DF.bkAt = 0;
+  DF.state = 'ok'; DF.err = ''; DF.savedAt = f.lastModified; DF.bkDay = '';
   try { await idbSet('dataFileName', hd.name); } catch (e) { console.warn(e); }
   if (d){
     loadData(d); DF.dirty = false; showStep(1);
@@ -3089,7 +3100,7 @@ async function dfCreate(fromOpen){
     state.settings.grade = grade; state.settings.testName = testName;
     normalizeSettings(); initInputs(); renderSettings(); renderResults();
     hd = await DF.dir.getFileHandle(name, { create: true });
-    DF.handle = hd; DF.fileDir = DF.dir; DF.lastName = name; DF.lastMod = 0; DF.state = 'ok'; DF.err = ''; DF.dirty = true; DF.bkDay = ''; DF.bkAt = 0;
+    DF.handle = hd; DF.fileDir = DF.dir; DF.lastName = name; DF.lastMod = 0; DF.state = 'ok'; DF.err = ''; DF.dirty = true; DF.bkDay = '';
     try { await idbSet('dataFileName', name); } catch (e) { console.warn(e); }
     await dfWrite(); closeFileDialog(); showStep(1);
     if (DF.state === 'ok') toast(`「${testLabel(name)}」を作りました。これからは自動でここに保存します`);
@@ -3104,9 +3115,10 @@ async function openRestoreDialog(){
     list.forEach((b, i) => fns['b' + i] = () => restoreFrom(b));
     const markText = { '開く前': '別のテストを開く前の内容', '上書き前': '上書きする前の内容', '戻す前': '前の日の状態に戻す前の内容' };
     showFileDialog('<h2>前の日の状態に戻す</h2>'
-      + `<p>「<b>${escHtml(testLabel(DF.handle.name))}</b>」のバックアップです。毎日、その日の最後の状態を「${BACKUP_DIR}」フォルダに自動で残しています（${BACKUP_KEEP_DAYS}日分）。戻したい日を選んでください。</p>`
-      + (list.length ? '<div class="fchoice flist">' + list.map((b, i) => choiceBtn(`${b.day.replace(/^(\d+)-0?(\d+)-0?(\d+)$/, '$1年$2月$3日')}${b.mark ? '（' + escHtml(markText[b.mark] || b.mark) + '）' : ''}`, `${fmtTime(b.mod)} の状態`, 'b' + i)).join('') + '</div>'
-        : '<p>まだバックアップがありません（ファイルに保存すると、その日のバックアップができます）。</p>')
+      + `<p>「<b>${escHtml(testLabel(DF.handle.name))}</b>」のバックアップです（${list.length}件）。その日はじめて編集する前の状態を「${BACKUP_DIR}」フォルダに自動で残しています。戻したい日を選んでください。</p>`
+      + `<p class="note">バックアップはアプリでは消しません。増えすぎたら、エクスプローラーで「${BACKUP_DIR}」フォルダの古いものを消してください。</p>`
+      + (list.length ? '<div class="fchoice flist">' + list.map((b, i) => choiceBtn(`${b.day.replace(/^(\d+)-0?(\d+)-0?(\d+)$/, '$1年$2月$3日')}${b.time ? ' ' + b.time : ''}${b.mark ? '（' + escHtml(markText[b.mark] || b.mark) + '）' : b.time ? '（編集を始める前）' : '（その日の最後の状態）'}`, `${fmtTime(b.mod)} の状態`, 'b' + i)).join('') + '</div>'
+        : '<p>まだバックアップがありません（その日はじめて編集すると、編集を始める前の状態が残ります）。</p>')
       + '<div class="fchoice">' + choiceBtn('前の版のバックアップを選ぶ', '1.26 までの「バックアップを保存」で書き出したファイル（マークシート採点_バックアップ_….json）から戻すとき。', 'file')
       + choiceBtn('閉じる', '今のまま変えません。', 'close') + '</div>', fns);
   } catch (e) { dfFail(e, 'バックアップを見られませんでした'); }
@@ -3208,7 +3220,7 @@ function dfAskNewTest(prev){
     try {
       if (!await askPerm(prev.handle)){ alert(NOT_ALLOWED); return; }
       await writeBackupFile(stemOf(prev.handle.name), await (await prev.handle.getFile()).text(), '上書き前', prev.fileDir);
-      DF.handle = prev.handle; DF.fileDir = prev.fileDir; DF.lastMod = 0; DF.state = 'ok'; DF.err = ''; DF.bkDay = ''; DF.bkAt = 0;
+      DF.handle = prev.handle; DF.fileDir = prev.fileDir; DF.lastMod = 0; DF.state = 'ok'; DF.err = ''; DF.bkDay = '';
       await dfWrite(); closeFileDialog();
       if (DF.state === 'ok') toast(`「${testLabel(prev.handle.name)}」のファイルに上書きしました`);
     } catch (e) { dfFail(e, 'ファイルに保存できませんでした'); }
